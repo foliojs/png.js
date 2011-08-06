@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html>
+<body>
+<canvas></canvas>
+
+<script src="zlib.js"></script>
+<script src="png.js"></script>
+<script>
+    PNG.load('djay.png', function(png) {
+        var canvas = document.getElementsByTagName('canvas')[0];
+        canvas.width = png.width;
+        canvas.height = png.height;
+        
+        var ctx = canvas.getContext("2d");
+        var data = ctx.getImageData(0, 0, png.width, png.height);
+        
+        png.copyToImageData(data);
+        ctx.putImageData(data, 0, 0);
+    });
+</script>
+</body>
+</html>
