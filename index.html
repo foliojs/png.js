@@ -1,13 +1,18 @@
 <!DOCTYPE html>
 <html>
 <body>
+<select>
+    <option>djay.png</option>
+    <option>laptop.png</option>
+    <option>trees.png</option>
+</select><br><br>
 <canvas></canvas>
 
 <script src="zlib.js"></script>
 <script src="png.js"></script>
 <script>
-    PNG.load('djay.png', function(png) {
-        var canvas = document.getElementsByTagName('canvas')[0];
+    var canvas = document.getElementsByTagName('canvas')[0];
+    function render(png) {
         canvas.width = png.width;
         canvas.height = png.height;
         
@@ -16,7 +21,15 @@
         
         png.copyToImageData(data);
         ctx.putImageData(data, 0, 0);
-    });
+    }
+    
+    PNG.load('djay.png', render);
+    
+    var select = document.getElementsByTagName('select')[0];
+    select.onchange = function() {
+        canvas.width = canvas.height = 0
+        PNG.load(select.options[select.selectedIndex].value, render)
+    }
 </script>
 </body>
 </html>
