@@ -115,7 +115,7 @@ class PNG
         b4 = @data[@pos++]
         b1 | b2 | b3 | b4
         
-    getPixelData: ->
+    decodePixels: ->        
         data = new FlateStream @imgData
         data = data.getBytes()
         pixelBytes = @pixelBitlength / 8
@@ -195,15 +195,37 @@ class PNG
             
         return pixels
         
+    decodePalette: ->
+        palette = @palette
+        transparency = @transparency.indexed ? []
+        decodingMap = []
+        index = 0
+        
+        for i in [0...palette.length] by 3
+            alpha = transparency[index++] ? 255
+            pixel = palette.slice(i, i + 3).concat(alpha)
+            decodingMap.push pixel
+            
+        return decodingMap
+        
     copyToImageData: (imageData) ->
-        pixels = @getPixelData()
+        pixels = @decodePixels()
         colors = @colors
+        palette = null
         alpha = @hasAlphaChannel
+        
+        if @palette.length
+            palette = @decodePalette()
+            colors = 4
+            alpha = true
+        
         data = imageData.data
         i = 0
         
         for row in pixels
             for pixel in row
+                pixel = palette[pixel] if palette
+                
                 if colors is 1
                     v = pixel[0]
                     data[i++] = v

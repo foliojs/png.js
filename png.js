@@ -134,7 +134,7 @@
       b4 = this.data[this.pos++];
       return b1 | b2 | b3 | b4;
     };
-    PNG.prototype.getPixelData = function() {
+    PNG.prototype.decodePixels = function() {
       var byte, col, data, filter, i, left, length, p, pa, paeth, pb, pc, pixelBytes, pixels, pos, row, rowData, s, scanlineLength, upper, upperLeft, _ref, _step;
       data = new FlateStream(this.imgData);
       data = data.getBytes();
@@ -215,17 +215,39 @@
       }
       return pixels;
     };
+    PNG.prototype.decodePalette = function() {
+      var alpha, decodingMap, i, index, palette, pixel, transparency, _ref, _ref2, _ref3, _step;
+      palette = this.palette;
+      transparency = (_ref = this.transparency.indexed) != null ? _ref : [];
+      decodingMap = [];
+      index = 0;
+      for (i = 0, _ref2 = palette.length, _step = 3; 0 <= _ref2 ? i < _ref2 : i > _ref2; i += _step) {
+        alpha = (_ref3 = transparency[index++]) != null ? _ref3 : 255;
+        pixel = palette.slice(i, i + 3).concat(alpha);
+        decodingMap.push(pixel);
+      }
+      return decodingMap;
+    };
     PNG.prototype.copyToImageData = function(imageData) {
-      var alpha, byte, colors, data, i, pixel, pixels, row, v, _i, _j, _k, _len, _len2, _len3;
-      pixels = this.getPixelData();
+      var alpha, byte, colors, data, i, palette, pixel, pixels, row, v, _i, _j, _k, _len, _len2, _len3;
+      pixels = this.decodePixels();
       colors = this.colors;
+      palette = null;
       alpha = this.hasAlphaChannel;
+      if (this.palette.length) {
+        palette = this.decodePalette();
+        colors = 4;
+        alpha = true;
+      }
       data = imageData.data;
       i = 0;
       for (_i = 0, _len = pixels.length; _i < _len; _i++) {
         row = pixels[_i];
         for (_j = 0, _len2 = row.length; _j < _len2; _j++) {
           pixel = row[_j];
+          if (palette) {
+            pixel = palette[pixel];
+          }
           if (colors === 1) {
             v = pixel[0];
             data[i++] = v;
