@@ -17,12 +17,12 @@
 <script src="png.js"></script>
 <script>
     var canvas = document.getElementsByTagName('canvas')[0];
-    PNG.load('djay.png', canvas);
+    PNG.load('images/djay.png', canvas);
     
     var select = document.getElementsByTagName('select')[0];
     select.onchange = function() {
-        canvas.width = canvas.height = 0
-        PNG.load(select.options[select.selectedIndex].value, canvas)
+        canvas.width = canvas.height = 0;
+        PNG.load('images/' + select.options[select.selectedIndex].value, canvas);
     }
 </script>
 </body>
