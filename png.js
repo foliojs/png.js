@@ -290,12 +290,12 @@
       return decodingMap;
     };
     PNG.prototype.copyToImageData = function(imageData, pixels) {
-      var alpha, byte, colors, data, i, palette, pixel, row, v, _i, _j, _k, _len, _len2, _len3;
+      var alpha, byte, colors, data, i, palette, pixel, row, v, _i, _j, _k, _len, _len2, _len3, _ref;
       colors = this.colors;
       palette = null;
       alpha = this.hasAlphaChannel;
       if (this.palette.length) {
-        palette = this.decodePalette();
+        palette = (_ref = this._decodedPalette) != null ? _ref : this._decodedPalette = this.decodePalette();
         colors = 4;
         alpha = true;
       }
