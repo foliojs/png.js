@@ -6,6 +6,10 @@
     <option>djay-indexed.png</option>
     <option>laptop.png</option>
     <option>trees.png</option>
+    <option>chompy.png</option>
+    <option>spinfox.png</option>
+    <option>ball.png</option>
+    <option>loading.png</option>
 </select><br><br>
 <canvas></canvas>
 
@@ -13,23 +17,12 @@
 <script src="png.js"></script>
 <script>
     var canvas = document.getElementsByTagName('canvas')[0];
-    function render(png) {
-        canvas.width = png.width;
-        canvas.height = png.height;
-        
-        var ctx = canvas.getContext("2d");
-        var data = ctx.getImageData(0, 0, png.width, png.height);
-        
-        png.copyToImageData(data);
-        ctx.putImageData(data, 0, 0);
-    }
-    
-    PNG.load('djay.png', render);
+    PNG.load('djay.png', canvas);
     
     var select = document.getElementsByTagName('select')[0];
     select.onchange = function() {
         canvas.width = canvas.height = 0
-        PNG.load(select.options[select.selectedIndex].value, render)
+        PNG.load(select.options[select.selectedIndex].value, canvas)
     }
 </script>
 </body>

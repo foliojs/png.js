@@ -19,15 +19,25 @@
 ###
 
 class PNG
-    @load: (url, callback) ->
+    @load: (url, canvas, callback) ->
+        callback = canvas if typeof canvas is 'function'
+    
         xhr = new XMLHttpRequest
         xhr.open("GET", url, true)
         xhr.responseType = "arraybuffer"
         xhr.onload = =>
             data = new Uint8Array(xhr.response or xhr.mozResponseArrayBuffer)
-            callback new PNG(data)
+            png = new PNG(data)
+            png.render(canvas) if typeof canvas?.getContext is 'function'
+            callback?(png)
             
         xhr.send(null)
+        
+    APNG_DISPOSE_OP_NONE = 0
+    APNG_DISPOSE_OP_BACKGROUND = 1
+    APNG_DISPOSE_OP_PREVIOUS = 2
+    APNG_BLEND_OP_SOURCE = 0
+    APNG_BLEND_OP_OVER = 1
     
     constructor: (@data) ->
         @pos = 8  # Skip the default header
@@ -35,6 +45,8 @@ class PNG
         @palette = []
         @imgData = []
         @transparency = {}
+        @animation = null
+        frame = null
         
         loop
             chunkSize = @readUInt32()
@@ -51,12 +63,42 @@ class PNG
                     @filterMethod = @data[@pos++]
                     @interlaceMethod = @data[@pos++]
                     
+                when 'acTL'
+                    # we have an animated PNG
+                    @animation = 
+                        numFrames: @readUInt32()
+                        numPlays: @readUInt32() or Infinity
+                        frames: []
+                    
                 when 'PLTE'
                     @palette = @read(chunkSize)
                     
-                when 'IDAT'
+                when 'fcTL'
+                    @animation.frames.push(frame) if frame
+                
+                    @pos += 4 # skip sequence number
+                    frame = 
+                        width: @readUInt32()
+                        height: @readUInt32()
+                        xOffset: @readUInt32()
+                        yOffset: @readUInt32()
+                        
+                    delayNum = @readUInt16()
+                    delayDen = @readUInt16() or 100
+                    frame.delay = 1000 * delayNum / delayDen
+                    
+                    frame.disposeOp = @data[@pos++]
+                    frame.blendOp = @data[@pos++]
+                    frame.data = []
+                    
+                when 'IDAT', 'fdAT'
+                    if section is 'fdAT'
+                        @pos += 4 # skip sequence number
+                        chunkSize -= 4
+                    
+                    data = frame?.data or @imgData
                     for i in [0...chunkSize]
-                        @imgData.push @data[@pos++]
+                        data.push @data[@pos++]
                         
                 when 'tRNS'
                     # This chunk can only occur once and it must occur after the
@@ -81,6 +123,8 @@ class PNG
                             @transparency.rgb = @read(chunkSize)
                             
                 when 'IEND'
+                    @animation.frames.push(frame) if frame
+                
                     # we've got everything we need!
                     @colors = switch @colorType
                         when 0, 3, 4 then 1
@@ -94,7 +138,7 @@ class PNG
                         when 1 then 'DeviceGray'
                         when 3 then 'DeviceRGB'
                     
-                    @imgData = new Uint8Array @imgData
+                    @imgData = new Uint8Array @imgData                        
                     return
                     
                 else
@@ -115,8 +159,15 @@ class PNG
         b4 = @data[@pos++]
         b1 | b2 | b3 | b4
         
-    decodePixels: ->        
-        data = new FlateStream @imgData
+    readUInt16: ->
+        b1 = @data[@pos++] << 8
+        b2 = @data[@pos++]
+        b1 | b2
+        
+    decodePixels: (data = @imgData) -> 
+        return [] if data.length is 0
+        
+        data = new FlateStream(data)
         data = data.getBytes()
         pixelBytes = @pixelBitlength / 8
         scanlineLength = pixelBytes * @width
@@ -208,8 +259,7 @@ class PNG
             
         return decodingMap
         
-    copyToImageData: (imageData) ->
-        pixels = @decodePixels()
+    copyToImageData: (imageData, pixels) ->
         colors = @colors
         palette = null
         alpha = @hasAlphaChannel
@@ -237,5 +287,86 @@ class PNG
                     data[i++] = 255 unless alpha
                 
         return
+        
+    scratchCanvas = document.createElement 'canvas'
+    scratchCtx = scratchCanvas.getContext '2d'
+    makeImage = (imageData) ->
+        scratchCtx.width = imageData.width
+        scratchCtx.height = imageData.height
+        scratchCtx.clearRect(0, 0, imageData.width, imageData.height)
+        scratchCtx.putImageData(imageData, 0, 0)
+            
+        img = new Image
+        img.src = scratchCanvas.toDataURL()
+        return img
+        
+    decodeFrames: (ctx) ->
+        return unless @animation
+        
+        for frame, i in @animation.frames
+            imageData = ctx.createImageData(frame.width, frame.height)
+            pixels = @decodePixels(new Uint8Array(frame.data))
+            
+            @copyToImageData(imageData, pixels)
+            frame.imageData = imageData
+            frame.image = makeImage(imageData)
+        
+    renderFrame: (ctx, number) ->
+        frames = @animation.frames
+        frame = frames[number]
+        prev = frames[number - 1]
+        
+        # if we're on the first frame, clear the canvas
+        if number is 0
+            ctx.clearRect(0, 0, @width, @height)
+        
+        # check the previous frame's dispose operation
+        if prev?.disposeOp is APNG_DISPOSE_OP_BACKGROUND
+            ctx.clearRect(prev.xOffset, prev.yOffset, prev.width, prev.height)
+            
+        else if prev?.disposeOp is APNG_DISPOSE_OP_PREVIOUS
+            ctx.putImageData(prev.imageData, prev.xOffset, prev.yOffset)
+        
+        # APNG_BLEND_OP_SOURCE overwrites the previous data
+        if frame.blendOp is APNG_BLEND_OP_SOURCE
+            ctx.clearRect(frame.xOffset, frame.yOffset, frame.width, frame.height)
+        
+        # draw the current frame
+        ctx.drawImage(frame.image, frame.xOffset, frame.yOffset)   
+        
+    animate: (ctx) ->
+        frameNumber = 0
+        {numFrames, frames, numPlays} = @animation
+        
+        do doFrame = =>
+            f = frameNumber++ % numFrames
+            frame = frames[f]
+            @renderFrame(ctx, f)
+            
+            if numFrames > 1 and frameNumber / numFrames < numPlays
+                @animation._timeout = setTimeout(doFrame, frame.delay)
+                
+    stopAnimation: ->
+        clearTimeout @animation?._timeout
+    
+    render: (canvas) ->
+        # if this canvas was displaying another image before,
+        # stop the animation on it
+        if canvas._png
+            canvas._png.stopAnimation()
+        
+        canvas._png = this
+        canvas.width = @width
+        canvas.height = @height
+        ctx = canvas.getContext "2d"
+        
+        if @animation
+            @decodeFrames(ctx)
+            @animate(ctx)
+        
+        else
+            data = ctx.createImageData @width, @height
+            @copyToImageData data, @decodePixels()
+            ctx.putImageData data, 0, 0
 
 window.PNG = PNG

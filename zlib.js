@@ -215,7 +215,7 @@ var FlateStream = (function() {
   ]), 5];
   
   function error(e) {
-      console.error('Error: ' + e)
+      throw new Error(e)
   }
 
   function constructor(bytes) {
