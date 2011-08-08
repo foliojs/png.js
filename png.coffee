@@ -265,7 +265,7 @@ class PNG
         alpha = @hasAlphaChannel
         
         if @palette.length
-            palette = @decodePalette()
+            palette = @_decodedPalette ?= @decodePalette()
             colors = 4
             alpha = true
         
