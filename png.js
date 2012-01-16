@@ -53,6 +53,7 @@
       this.imgData = [];
       this.transparency = {};
       this.animation = null;
+      this.text = {};
       frame = null;
       while (true) {
         chunkSize = this.readUInt32();
@@ -131,6 +132,17 @@
               case 2:
                 this.transparency.rgb = this.read(chunkSize);
             }
+            break;
+          case 'tEXt':
+            var txt = this.read(chunkSize);
+            var txtKeyword = txt.splice(0, txt.indexOf(0));
+            txtKeyword = txtKeyword.reduce(function(previousValue, currentValue, index, array) {
+              return previousValue + String.fromCharCode(currentValue);
+            }, '');
+            txt = txt.splice(1);
+            this.text[txtKeyword] = txt.reduce(function(previousValue, currentValue, index, array) {
+              return previousValue + String.fromCharCode(currentValue);
+            }, '');
             break;
           case 'IEND':
             if (frame) {
