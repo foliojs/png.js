@@ -1,4 +1,5 @@
 (function() {
+
   /*
   # MIT LICENSE
   # Copyright (c) 2011 Devon Govett
@@ -17,19 +18,21 @@
   # NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, 
   # DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, 
   # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
-  */  var PNG;
-  var __bind = function(fn, me){ return function(){ return fn.apply(me, arguments); }; };
+  */
+
+  var PNG;
+
   PNG = (function() {
     var APNG_BLEND_OP_OVER, APNG_BLEND_OP_SOURCE, APNG_DISPOSE_OP_BACKGROUND, APNG_DISPOSE_OP_NONE, APNG_DISPOSE_OP_PREVIOUS, makeImage, scratchCanvas, scratchCtx;
+
     PNG.load = function(url, canvas, callback) {
       var xhr;
-      if (typeof canvas === 'function') {
-        callback = canvas;
-      }
+      var _this = this;
+      if (typeof canvas === 'function') callback = canvas;
       xhr = new XMLHttpRequest;
       xhr.open("GET", url, true);
       xhr.responseType = "arraybuffer";
-      xhr.onload = __bind(function() {
+      xhr.onload = function() {
         var data, png;
         data = new Uint8Array(xhr.response || xhr.mozResponseArrayBuffer);
         png = new PNG(data);
@@ -37,22 +40,29 @@
           png.render(canvas);
         }
         return typeof callback === "function" ? callback(png) : void 0;
-      }, this);
+      };
       return xhr.send(null);
     };
+
     APNG_DISPOSE_OP_NONE = 0;
+
     APNG_DISPOSE_OP_BACKGROUND = 1;
+
     APNG_DISPOSE_OP_PREVIOUS = 2;
+
     APNG_BLEND_OP_SOURCE = 0;
+
     APNG_BLEND_OP_OVER = 1;
+
     function PNG(data) {
-      var chunkSize, colors, delayDen, delayNum, frame, i, section, short, _ref;
+      var chunkSize, colors, delayDen, delayNum, frame, i, index, key, section, short, text, _ref;
       this.data = data;
       this.pos = 8;
       this.palette = [];
       this.imgData = [];
       this.transparency = {};
       this.animation = null;
+      this.text = {};
       frame = null;
       while (true) {
         chunkSize = this.readUInt32();
@@ -85,9 +95,7 @@
             this.palette = this.read(chunkSize);
             break;
           case 'fcTL':
-            if (frame) {
-              this.animation.frames.push(frame);
-            }
+            if (frame) this.animation.frames.push(frame);
             this.pos += 4;
             frame = {
               width: this.readUInt32(),
@@ -132,10 +140,14 @@
                 this.transparency.rgb = this.read(chunkSize);
             }
             break;
+          case 'tEXt':
+            text = this.read(chunkSize);
+            index = text.indexOf(0);
+            key = String.fromCharCode.apply(String, text.slice(0, index));
+            this.text[key] = String.fromCharCode.apply(String, text.slice(index + 1));
+            break;
           case 'IEND':
-            if (frame) {
-              this.animation.frames.push(frame);
-            }
+            if (frame) this.animation.frames.push(frame);
             this.colors = (function() {
               switch (this.colorType) {
                 case 0:
@@ -167,6 +179,7 @@
       }
       return;
     }
+
     PNG.prototype.read = function(bytes) {
       var i, _results;
       _results = [];
@@ -175,6 +188,7 @@
       }
       return _results;
     };
+
     PNG.prototype.readUInt32 = function() {
       var b1, b2, b3, b4;
       b1 = this.data[this.pos++] << 24;
@@ -183,20 +197,18 @@
       b4 = this.data[this.pos++];
       return b1 | b2 | b3 | b4;
     };
+
     PNG.prototype.readUInt16 = function() {
       var b1, b2;
       b1 = this.data[this.pos++] << 8;
       b2 = this.data[this.pos++];
       return b1 | b2;
     };
+
     PNG.prototype.decodePixels = function(data) {
-      var byte, col, filter, i, left, length, p, pa, paeth, pb, pc, pixelBytes, pixels, pos, row, rowData, s, scanlineLength, upper, upperLeft, _ref, _step;
-      if (data == null) {
-        data = this.imgData;
-      }
-      if (data.length === 0) {
-        return [];
-      }
+      var byte, col, filter, i, left, length, p, pa, paeth, pb, pc, pixelBytes, pixels, pos, row, rowData, s, scanlineLength, upper, upperLeft, _ref;
+      if (data == null) data = this.imgData;
+      if (data.length === 0) return [];
       data = new FlateStream(data);
       data = data.getBytes();
       pixelBytes = this.pixelBitlength / 8;
@@ -268,7 +280,7 @@
             throw new Error("Invalid filter algorithm: " + filter);
         }
         s = [];
-        for (i = 0, _ref = rowData.length, _step = pixelBytes; 0 <= _ref ? i < _ref : i > _ref; i += _step) {
+        for (i = 0, _ref = rowData.length; 0 <= _ref ? i < _ref : i > _ref; i += pixelBytes) {
           s.push(rowData.slice(i, i + pixelBytes));
         }
         pixels.push(s);
@@ -276,19 +288,21 @@
       }
       return pixels;
     };
+
     PNG.prototype.decodePalette = function() {
-      var alpha, decodingMap, i, index, palette, pixel, transparency, _ref, _ref2, _ref3, _step;
+      var alpha, decodingMap, i, index, palette, pixel, transparency, _ref, _ref2, _ref3;
       palette = this.palette;
       transparency = (_ref = this.transparency.indexed) != null ? _ref : [];
       decodingMap = [];
       index = 0;
-      for (i = 0, _ref2 = palette.length, _step = 3; 0 <= _ref2 ? i < _ref2 : i > _ref2; i += _step) {
+      for (i = 0, _ref2 = palette.length; i < _ref2; i += 3) {
         alpha = (_ref3 = transparency[index++]) != null ? _ref3 : 255;
         pixel = palette.slice(i, i + 3).concat(alpha);
         decodingMap.push(pixel);
       }
       return decodingMap;
     };
+
     PNG.prototype.copyToImageData = function(imageData, pixels) {
       var alpha, byte, colors, data, i, palette, pixel, row, v, _i, _j, _k, _len, _len2, _len3, _ref;
       colors = this.colors;
@@ -305,9 +319,7 @@
         row = pixels[_i];
         for (_j = 0, _len2 = row.length; _j < _len2; _j++) {
           pixel = row[_j];
-          if (palette) {
-            pixel = palette[pixel];
-          }
+          if (palette) pixel = palette[pixel];
           if (colors === 1) {
             v = pixel[0];
             data[i++] = v;
@@ -319,15 +331,16 @@
               byte = pixel[_k];
               data[i++] = byte;
             }
-            if (!alpha) {
-              data[i++] = 255;
-            }
+            if (!alpha) data[i++] = 255;
           }
         }
       }
     };
+
     scratchCanvas = document.createElement('canvas');
+
     scratchCtx = scratchCanvas.getContext('2d');
+
     makeImage = function(imageData) {
       var img;
       scratchCtx.width = imageData.width;
@@ -338,11 +351,10 @@
       img.src = scratchCanvas.toDataURL();
       return img;
     };
+
     PNG.prototype.decodeFrames = function(ctx) {
       var frame, i, imageData, pixels, _len, _ref, _results;
-      if (!this.animation) {
-        return;
-      }
+      if (!this.animation) return;
       _ref = this.animation.frames;
       _results = [];
       for (i = 0, _len = _ref.length; i < _len; i++) {
@@ -355,14 +367,13 @@
       }
       return _results;
     };
+
     PNG.prototype.renderFrame = function(ctx, number) {
       var frame, frames, prev;
       frames = this.animation.frames;
       frame = frames[number];
       prev = frames[number - 1];
-      if (number === 0) {
-        ctx.clearRect(0, 0, this.width, this.height);
-      }
+      if (number === 0) ctx.clearRect(0, 0, this.width, this.height);
       if ((prev != null ? prev.disposeOp : void 0) === APNG_DISPOSE_OP_BACKGROUND) {
         ctx.clearRect(prev.xOffset, prev.yOffset, prev.width, prev.height);
       } else if ((prev != null ? prev.disposeOp : void 0) === APNG_DISPOSE_OP_PREVIOUS) {
@@ -373,29 +384,31 @@
       }
       return ctx.drawImage(frame.image, frame.xOffset, frame.yOffset);
     };
+
     PNG.prototype.animate = function(ctx) {
       var doFrame, frameNumber, frames, numFrames, numPlays, _ref;
+      var _this = this;
       frameNumber = 0;
       _ref = this.animation, numFrames = _ref.numFrames, frames = _ref.frames, numPlays = _ref.numPlays;
-      return (doFrame = __bind(function() {
+      return (doFrame = function() {
         var f, frame;
         f = frameNumber++ % numFrames;
         frame = frames[f];
-        this.renderFrame(ctx, f);
+        _this.renderFrame(ctx, f);
         if (numFrames > 1 && frameNumber / numFrames < numPlays) {
-          return this.animation._timeout = setTimeout(doFrame, frame.delay);
+          return _this.animation._timeout = setTimeout(doFrame, frame.delay);
         }
-      }, this))();
+      })();
     };
+
     PNG.prototype.stopAnimation = function() {
       var _ref;
       return clearTimeout((_ref = this.animation) != null ? _ref._timeout : void 0);
     };
+
     PNG.prototype.render = function(canvas) {
       var ctx, data;
-      if (canvas._png) {
-        canvas._png.stopAnimation();
-      }
+      if (canvas._png) canvas._png.stopAnimation();
       canvas._png = this;
       canvas.width = this.width;
       canvas.height = this.height;
@@ -409,7 +422,11 @@
         return ctx.putImageData(data, 0, 0);
       }
     };
+
     return PNG;
+
   })();
+
   window.PNG = PNG;
+
 }).call(this);

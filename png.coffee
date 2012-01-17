@@ -46,6 +46,7 @@ class PNG
         @imgData = []
         @transparency = {}
         @animation = null
+        @text = {}
         frame = null
         
         loop
@@ -121,6 +122,12 @@ class PNG
                         when 2
                             # True color with proper alpha channel.
                             @transparency.rgb = @read(chunkSize)
+                            
+                when 'tEXt'
+                    text = @read(chunkSize)                    
+                    index = text.indexOf(0)
+                    key = String.fromCharCode text.slice(0, index)...
+                    @text[key] = String.fromCharCode text.slice(index + 1)...
                             
                 when 'IEND'
                     @animation.frames.push(frame) if frame
