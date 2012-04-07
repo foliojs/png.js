@@ -21,31 +21,29 @@
 fs = require 'fs'
 zlib = require 'zlib'
 
-exports.PNG = class PNG
+module.exports = class PNG
+    @decode: (path, fn) ->
+       fs.readFile path, (err, file) ->
+           png = new PNG(file)
+           png.decode (pixels) ->
+               fn pixels
+               
     @load: (path) ->
-       file = fs.readFileSync path
-       new PNG(file)
-        
-    APNG_DISPOSE_OP_NONE = 0
-    APNG_DISPOSE_OP_BACKGROUND = 1
-    APNG_DISPOSE_OP_PREVIOUS = 2
-    APNG_BLEND_OP_SOURCE = 0
-    APNG_BLEND_OP_OVER = 1
+        file = fs.readFileSync path
+        return new PNG(file)
     
     constructor: (@data) ->
         @pos = 8  # Skip the default header
-        
+
         @palette = []
         @imgData = []
         @transparency = {}
-        @animation = null
         @text = {}
-        frame = null
-        
+
         loop
             chunkSize = @readUInt32()
             section = (String.fromCharCode @data[@pos++] for i in [0...4]).join('')
-            
+
             switch section
                 when 'IHDR'
                     # we can grab  interesting values from here (like width, height, etc)
@@ -56,14 +54,14 @@ exports.PNG = class PNG
                     @compressionMethod = @data[@pos++]
                     @filterMethod = @data[@pos++]
                     @interlaceMethod = @data[@pos++]
-                    
+
                 when 'PLTE'
                     @palette = @read(chunkSize)
-                    
+
                 when 'IDAT'
-                    for i in [0...chunkSize]
+                    for i in [0...chunkSize] by 1
                         @imgData.push @data[@pos++]
-                        
+
                 when 'tRNS'
                     # This chunk can only occur once and it must occur after the
                     # PLTE chunk and before the IDAT chunk.
@@ -85,30 +83,36 @@ exports.PNG = class PNG
                         when 2
                             # True color with proper alpha channel.
                             @transparency.rgb = @read(chunkSize)
-                            
-                when 'IEND'                
+
+                when 'tEXt'
+                    text = @read(chunkSize)                    
+                    index = text.indexOf(0)
+                    key = String.fromCharCode text.slice(0, index)...
+                    @text[key] = String.fromCharCode text.slice(index + 1)...
+
+                when 'IEND'
                     # we've got everything we need!
                     @colors = switch @colorType
                         when 0, 3, 4 then 1
                         when 2, 6 then 3
-                    
+
                     @hasAlphaChannel = @colorType in [4, 6]
                     colors = @colors + if @hasAlphaChannel then 1 else 0    
                     @pixelBitlength = @bits * colors
-                        
+
                     @colorSpace = switch @colors
                         when 1 then 'DeviceGray'
                         when 3 then 'DeviceRGB'
-                    
-                    @imgData = new Buffer @imgData                        
+
+                    @imgData = new Buffer @imgData
                     return
-                    
+
                 else
                     # unknown (or unimportant) section, skip it
                     @pos += chunkSize
-                    
+
             @pos += 4 # Skip the CRC
-            
+
         return
         
     read: (bytes) ->
@@ -133,53 +137,50 @@ exports.PNG = class PNG
             pixelBytes = @pixelBitlength / 8
             scanlineLength = pixelBytes * @width
 
-            row = 0
-            pixels = []
+            pixels = new Buffer(scanlineLength * @height)
             length = data.length
+            row = 0
             pos = 0
+            c = 0
 
             while pos < length
-                filter = data[pos++]
-                i = 0
-                rowData = []
-
-                switch filter
+                switch data[pos++]
                     when 0 # None
-                        while i < scanlineLength
-                            rowData[i++] = data[pos++]
+                        for i in [0...scanlineLength] by 1
+                            pixels[c++] = data[pos++]
 
                     when 1 # Sub
-                        while i < scanlineLength
+                        for i in [0...scanlineLength] by 1
                             byte = data[pos++]
-                            left = if i < pixelBytes then 0 else rowData[i - pixelBytes]
-                            rowData[i++] = (byte + left) % 256
+                            left = if i < pixelBytes then 0 else pixels[c - pixelBytes]
+                            pixels[c++] = (byte + left) % 256
 
                     when 2 # Up
-                        while i < scanlineLength
+                        for i in [0...scanlineLength] by 1
                             byte = data[pos++]
                             col = (i - (i % pixelBytes)) / pixelBytes
-                            upper = if row is 0 then 0 else pixels[row - 1][col][i % pixelBytes]
-                            rowData[i++] = (upper + byte) % 256
+                            upper = row && pixels[(row - 1) * scanlineLength + col * pixelBytes + (i % pixelBytes)]
+                            pixels[c++] = (upper + byte) % 256
 
                     when 3 # Average
-                        while i < scanlineLength
+                        for i in [0...scanlineLength] by 1
                             byte = data[pos++]
                             col = (i - (i % pixelBytes)) / pixelBytes
-                            left = if i < pixelBytes then 0 else rowData[i - pixelBytes]
-                            upper = if row is 0 then 0 else pixels[row - 1][col][i % pixelBytes]
-                            rowData[i++] = (byte + Math.floor((left + upper) / 2)) % 256
+                            left = if i < pixelBytes then 0 else pixels[c - pixelBytes]
+                            upper = row && pixels[(row - 1) * scanlineLength + col * pixelBytes + (i % pixelBytes)]
+                            pixels[c++] = (byte + Math.floor((left + upper) / 2)) % 256
 
                     when 4 # Paeth
-                        while i < scanlineLength
+                        for i in [0...scanlineLength] by 1
                             byte = data[pos++]
                             col = (i - (i % pixelBytes)) / pixelBytes
-                            left = if i < pixelBytes then 0 else rowData[i - pixelBytes]
+                            left = if i < pixelBytes then 0 else pixels[c - pixelBytes]
 
                             if row is 0
                                 upper = upperLeft = 0
                             else
-                                upper = pixels[row - 1][col][i % pixelBytes]
-                                upperLeft = if col is 0 then 0 else pixels[row - 1][col - 1][i % pixelBytes]
+                                upper = pixels[(row - 1) * scanlineLength + col * pixelBytes + (i % pixelBytes)]
+                                upperLeft = col && pixels[(row - 1) * scanlineLength + (col - 1) * pixelBytes + (i % pixelBytes)]
 
                             p = left + upper - upperLeft
                             pa = Math.abs(p - left)
@@ -193,32 +194,30 @@ exports.PNG = class PNG
                             else
                                 paeth = upperLeft
 
-                            rowData[i++] = (byte + paeth) % 256
+                            pixels[c++] = (byte + paeth) % 256
 
                     else
-                        throw new Error "Invalid filter algorithm: " + filter 
+                        throw new Error "Invalid filter algorithm: " + data[pos - 1] 
 
-                s = []
-                for i in [0...rowData.length] by pixelBytes
-                    s.push rowData.slice(i, i + pixelBytes)
+                row++
 
-                pixels.push(s)
-                row += 1
-            
             fn pixels
         
     decodePalette: ->
         palette = @palette
-        transparency = @transparency.indexed ? []
-        decodingMap = []
-        index = 0
+        transparency = @transparency.indexed or []
+        ret = new Buffer((transparency.length or 0) + palette.length)
+        pos = 0
+        length = palette.length
+        c = 0
         
         for i in [0...palette.length] by 3
-            alpha = transparency[index++] ? 255
-            pixel = palette.slice(i, i + 3).concat(alpha)
-            decodingMap.push pixel
+            ret[pos++] = palette[i]
+            ret[pos++] = palette[i + 1]
+            ret[pos++] = palette[i + 2]
+            ret[pos++] = transparency[c++] ? 255
             
-        return decodingMap
+        return ret
         
     copyToImageData: (imageData, pixels) ->
         colors = @colors
@@ -230,21 +229,33 @@ exports.PNG = class PNG
             colors = 4
             alpha = true
         
-        data = imageData.data
-        i = 0
+        data = imageData?.data or imageData
+        length = data.length
+        input = palette or pixels
+        i = j = 0
         
-        for row in pixels
-            for pixel in row
-                pixel = palette[pixel] if palette
-                
-                if colors is 1
-                    v = pixel[0]
-                    data[i++] = v
-                    data[i++] = v
-                    data[i++] = v
-                    data[i++] = pixel[1] or 255
-                else
-                    data[i++] = byte for byte in pixel
-                    data[i++] = 255 unless alpha
-                
+        if colors is 1
+            while i < length
+                k = if palette then pixels[i / 4] * 4 else j
+                v = input[k++]
+                data[i++] = v
+                data[i++] = v
+                data[i++] = v
+                data[i++] = if alpha then input[k++] else 255
+                j = k
+        else
+            while i < length
+                k = if palette then pixels[i / 4] * 4 else j
+                data[i++] = input[k++]
+                data[i++] = input[k++]
+                data[i++] = input[k++]
+                data[i++] = if alpha then input[k++] else 255
+                j = k
+            
         return
+        
+    decode: (fn) ->
+        ret = new Buffer(@width * @height * 4)
+        @decodePixels (pixels) =>
+            @copyToImageData ret, pixels
+            fn ret
