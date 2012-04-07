@@ -206,61 +206,59 @@
     };
 
     PNG.prototype.decodePixels = function(data) {
-      var byte, col, filter, i, left, length, p, pa, paeth, pb, pc, pixelBytes, pixels, pos, row, rowData, s, scanlineLength, upper, upperLeft, _ref;
+      var byte, c, col, i, left, length, p, pa, paeth, pb, pc, pixelBytes, pixels, pos, row, scanlineLength, upper, upperLeft;
       if (data == null) data = this.imgData;
-      if (data.length === 0) return [];
+      if (data.length === 0) return new Uint8Array(0);
       data = new FlateStream(data);
       data = data.getBytes();
       pixelBytes = this.pixelBitlength / 8;
       scanlineLength = pixelBytes * this.width;
-      row = 0;
-      pixels = [];
+      pixels = new Uint8Array(scanlineLength * this.height);
       length = data.length;
+      row = 0;
       pos = 0;
+      c = 0;
       while (pos < length) {
-        filter = data[pos++];
-        i = 0;
-        rowData = [];
-        switch (filter) {
+        switch (data[pos++]) {
           case 0:
-            while (i < scanlineLength) {
-              rowData[i++] = data[pos++];
+            for (i = 0; i < scanlineLength; i += 1) {
+              pixels[c++] = data[pos++];
             }
             break;
           case 1:
-            while (i < scanlineLength) {
+            for (i = 0; i < scanlineLength; i += 1) {
               byte = data[pos++];
-              left = i < pixelBytes ? 0 : rowData[i - pixelBytes];
-              rowData[i++] = (byte + left) % 256;
+              left = i < pixelBytes ? 0 : pixels[c - pixelBytes];
+              pixels[c++] = (byte + left) % 256;
             }
             break;
           case 2:
-            while (i < scanlineLength) {
+            for (i = 0; i < scanlineLength; i += 1) {
               byte = data[pos++];
               col = (i - (i % pixelBytes)) / pixelBytes;
-              upper = row === 0 ? 0 : pixels[row - 1][col][i % pixelBytes];
-              rowData[i++] = (upper + byte) % 256;
+              upper = row && pixels[(row - 1) * scanlineLength + col * pixelBytes + (i % pixelBytes)];
+              pixels[c++] = (upper + byte) % 256;
             }
             break;
           case 3:
-            while (i < scanlineLength) {
+            for (i = 0; i < scanlineLength; i += 1) {
               byte = data[pos++];
               col = (i - (i % pixelBytes)) / pixelBytes;
-              left = i < pixelBytes ? 0 : rowData[i - pixelBytes];
-              upper = row === 0 ? 0 : pixels[row - 1][col][i % pixelBytes];
-              rowData[i++] = (byte + Math.floor((left + upper) / 2)) % 256;
+              left = i < pixelBytes ? 0 : pixels[c - pixelBytes];
+              upper = row && pixels[(row - 1) * scanlineLength + col * pixelBytes + (i % pixelBytes)];
+              pixels[c++] = (byte + Math.floor((left + upper) / 2)) % 256;
             }
             break;
           case 4:
-            while (i < scanlineLength) {
+            for (i = 0; i < scanlineLength; i += 1) {
               byte = data[pos++];
               col = (i - (i % pixelBytes)) / pixelBytes;
-              left = i < pixelBytes ? 0 : rowData[i - pixelBytes];
+              left = i < pixelBytes ? 0 : pixels[c - pixelBytes];
               if (row === 0) {
                 upper = upperLeft = 0;
               } else {
-                upper = pixels[row - 1][col][i % pixelBytes];
-                upperLeft = col === 0 ? 0 : pixels[row - 1][col - 1][i % pixelBytes];
+                upper = pixels[(row - 1) * scanlineLength + col * pixelBytes + (i % pixelBytes)];
+                upperLeft = col && pixels[(row - 1) * scanlineLength + (col - 1) * pixelBytes + (i % pixelBytes)];
               }
               p = left + upper - upperLeft;
               pa = Math.abs(p - left);
@@ -273,38 +271,36 @@
               } else {
                 paeth = upperLeft;
               }
-              rowData[i++] = (byte + paeth) % 256;
+              pixels[c++] = (byte + paeth) % 256;
             }
             break;
           default:
-            throw new Error("Invalid filter algorithm: " + filter);
+            throw new Error("Invalid filter algorithm: " + data[pos - 1]);
         }
-        s = [];
-        for (i = 0, _ref = rowData.length; 0 <= _ref ? i < _ref : i > _ref; i += pixelBytes) {
-          s.push(rowData.slice(i, i + pixelBytes));
-        }
-        pixels.push(s);
-        row += 1;
+        row++;
       }
       return pixels;
     };
 
     PNG.prototype.decodePalette = function() {
-      var alpha, decodingMap, i, index, palette, pixel, transparency, _ref, _ref2, _ref3;
+      var c, i, length, palette, pos, ret, transparency, _ref, _ref2;
       palette = this.palette;
-      transparency = (_ref = this.transparency.indexed) != null ? _ref : [];
-      decodingMap = [];
-      index = 0;
-      for (i = 0, _ref2 = palette.length; i < _ref2; i += 3) {
-        alpha = (_ref3 = transparency[index++]) != null ? _ref3 : 255;
-        pixel = palette.slice(i, i + 3).concat(alpha);
-        decodingMap.push(pixel);
+      transparency = this.transparency.indexed || [];
+      ret = new Uint8Array((transparency.length || 0) + palette.length);
+      pos = 0;
+      length = palette.length;
+      c = 0;
+      for (i = 0, _ref = palette.length; i < _ref; i += 3) {
+        ret[pos++] = palette[i];
+        ret[pos++] = palette[i + 1];
+        ret[pos++] = palette[i + 2];
+        ret[pos++] = (_ref2 = transparency[c++]) != null ? _ref2 : 255;
       }
-      return decodingMap;
+      return ret;
     };
 
     PNG.prototype.copyToImageData = function(imageData, pixels) {
-      var alpha, byte, colors, data, i, palette, pixel, row, v, _i, _j, _k, _len, _len2, _len3, _ref;
+      var alpha, colors, data, i, input, j, k, length, palette, v, _ref;
       colors = this.colors;
       palette = null;
       alpha = this.hasAlphaChannel;
@@ -314,27 +310,36 @@
         alpha = true;
       }
       data = imageData.data;
-      i = 0;
-      for (_i = 0, _len = pixels.length; _i < _len; _i++) {
-        row = pixels[_i];
-        for (_j = 0, _len2 = row.length; _j < _len2; _j++) {
-          pixel = row[_j];
-          if (palette) pixel = palette[pixel];
-          if (colors === 1) {
-            v = pixel[0];
-            data[i++] = v;
-            data[i++] = v;
-            data[i++] = v;
-            data[i++] = pixel[1] || 255;
-          } else {
-            for (_k = 0, _len3 = pixel.length; _k < _len3; _k++) {
-              byte = pixel[_k];
-              data[i++] = byte;
-            }
-            if (!alpha) data[i++] = 255;
-          }
+      length = data.length;
+      input = palette || pixels;
+      i = j = 0;
+      if (colors === 1) {
+        while (i < length) {
+          k = palette ? pixels[i / 4] * 4 : j;
+          v = input[k++];
+          data[i++] = v;
+          data[i++] = v;
+          data[i++] = v;
+          data[i++] = alpha ? input[k++] : 255;
+          j = k;
+        }
+      } else {
+        while (i < length) {
+          k = palette ? pixels[i / 4] * 4 : j;
+          data[i++] = input[k++];
+          data[i++] = input[k++];
+          data[i++] = input[k++];
+          data[i++] = alpha ? input[k++] : 255;
+          j = k;
         }
       }
+    };
+
+    PNG.prototype.decode = function() {
+      var ret;
+      ret = new Uint8Array(this.width * this.height * 4);
+      this.copyToImageData(ret, this.decodePixels());
+      return ret;
     };
 
     scratchCanvas = document.createElement('canvas');

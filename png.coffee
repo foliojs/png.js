@@ -172,60 +172,57 @@ class PNG
         b1 | b2
         
     decodePixels: (data = @imgData) -> 
-        return [] if data.length is 0
+        return new Uint8Array(0) if data.length is 0
         
         data = new FlateStream(data)
         data = data.getBytes()
         pixelBytes = @pixelBitlength / 8
         scanlineLength = pixelBytes * @width
 
-        row = 0
-        pixels = []
+        pixels = new Uint8Array(scanlineLength * @height)
         length = data.length
+        row = 0
         pos = 0
+        c = 0
         
         while pos < length
-            filter = data[pos++]
-            i = 0
-            rowData = []
-
-            switch filter
+            switch data[pos++]
                 when 0 # None
-                    while i < scanlineLength
-                        rowData[i++] = data[pos++]
+                    for i in [0...scanlineLength] by 1
+                        pixels[c++] = data[pos++]
 
                 when 1 # Sub
-                    while i < scanlineLength
+                    for i in [0...scanlineLength] by 1
                         byte = data[pos++]
-                        left = if i < pixelBytes then 0 else rowData[i - pixelBytes]
-                        rowData[i++] = (byte + left) % 256
+                        left = if i < pixelBytes then 0 else pixels[c - pixelBytes]
+                        pixels[c++] = (byte + left) % 256
 
                 when 2 # Up
-                    while i < scanlineLength
+                    for i in [0...scanlineLength] by 1
                         byte = data[pos++]
                         col = (i - (i % pixelBytes)) / pixelBytes
-                        upper = if row is 0 then 0 else pixels[row - 1][col][i % pixelBytes]
-                        rowData[i++] = (upper + byte) % 256
+                        upper = row && pixels[(row - 1) * scanlineLength + col * pixelBytes + (i % pixelBytes)]
+                        pixels[c++] = (upper + byte) % 256
 
                 when 3 # Average
-                    while i < scanlineLength
+                    for i in [0...scanlineLength] by 1
                         byte = data[pos++]
                         col = (i - (i % pixelBytes)) / pixelBytes
-                        left = if i < pixelBytes then 0 else rowData[i - pixelBytes]
-                        upper = if row is 0 then 0 else pixels[row - 1][col][i % pixelBytes]
-                        rowData[i++] = (byte + Math.floor((left + upper) / 2)) % 256
+                        left = if i < pixelBytes then 0 else pixels[c - pixelBytes]
+                        upper = row && pixels[(row - 1) * scanlineLength + col * pixelBytes + (i % pixelBytes)]
+                        pixels[c++] = (byte + Math.floor((left + upper) / 2)) % 256
 
                 when 4 # Paeth
-                    while i < scanlineLength
+                    for i in [0...scanlineLength] by 1
                         byte = data[pos++]
                         col = (i - (i % pixelBytes)) / pixelBytes
-                        left = if i < pixelBytes then 0 else rowData[i - pixelBytes]
+                        left = if i < pixelBytes then 0 else pixels[c - pixelBytes]
 
                         if row is 0
                             upper = upperLeft = 0
                         else
-                            upper = pixels[row - 1][col][i % pixelBytes]
-                            upperLeft = if col is 0 then 0 else pixels[row - 1][col - 1][i % pixelBytes]
+                            upper = pixels[(row - 1) * scanlineLength + col * pixelBytes + (i % pixelBytes)]
+                            upperLeft = col && pixels[(row - 1) * scanlineLength + (col - 1) * pixelBytes + (i % pixelBytes)]
 
                         p = left + upper - upperLeft
                         pa = Math.abs(p - left)
@@ -239,32 +236,30 @@ class PNG
                         else
                             paeth = upperLeft
 
-                        rowData[i++] = (byte + paeth) % 256
+                        pixels[c++] = (byte + paeth) % 256
 
                 else
-                    throw new Error "Invalid filter algorithm: " + filter 
+                    throw new Error "Invalid filter algorithm: " + data[pos - 1] 
 
-            s = []
-            for i in [0...rowData.length] by pixelBytes
-                s.push rowData.slice(i, i + pixelBytes)
-
-            pixels.push(s)
-            row += 1
+            row++
             
         return pixels
         
     decodePalette: ->
         palette = @palette
-        transparency = @transparency.indexed ? []
-        decodingMap = []
-        index = 0
+        transparency = @transparency.indexed or []
+        ret = new Uint8Array((transparency.length or 0) + palette.length)
+        pos = 0
+        length = palette.length
+        c = 0
         
         for i in [0...palette.length] by 3
-            alpha = transparency[index++] ? 255
-            pixel = palette.slice(i, i + 3).concat(alpha)
-            decodingMap.push pixel
+            ret[pos++] = palette[i]
+            ret[pos++] = palette[i + 1]
+            ret[pos++] = palette[i + 2]
+            ret[pos++] = transparency[c++] ? 255
             
-        return decodingMap
+        return ret
         
     copyToImageData: (imageData, pixels) ->
         colors = @colors
@@ -277,23 +272,34 @@ class PNG
             alpha = true
         
         data = imageData.data
-        i = 0
+        length = data.length
+        input = palette or pixels
+        i = j = 0
         
-        for row in pixels
-            for pixel in row
-                pixel = palette[pixel] if palette
-                
-                if colors is 1
-                    v = pixel[0]
-                    data[i++] = v
-                    data[i++] = v
-                    data[i++] = v
-                    data[i++] = pixel[1] or 255
-                else
-                    data[i++] = byte for byte in pixel
-                    data[i++] = 255 unless alpha
-                
+        if colors is 1
+            while i < length
+                k = if palette then pixels[i / 4] * 4 else j
+                v = input[k++]
+                data[i++] = v
+                data[i++] = v
+                data[i++] = v
+                data[i++] = if alpha then input[k++] else 255
+                j = k
+        else
+            while i < length
+                k = if palette then pixels[i / 4] * 4 else j
+                data[i++] = input[k++]
+                data[i++] = input[k++]
+                data[i++] = input[k++]
+                data[i++] = if alpha then input[k++] else 255
+                j = k
+            
         return
+        
+    decode: ->
+        ret = new Uint8Array(@width * @height * 4)
+        @copyToImageData ret, @decodePixels()
+        return ret
         
     scratchCanvas = document.createElement 'canvas'
     scratchCtx = scratchCanvas.getContext '2d'

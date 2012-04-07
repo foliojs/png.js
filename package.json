@@ -1,0 +1,23 @@
+{
+  "name": "png-js",
+  "description": "A PNG decoder in CoffeeScript",
+  "version": "0.1.0",
+  "author": {
+      "name": "Devon Govett",
+      "email": "devongovett@gmail.com",
+      "url": "http://badassjs.com/"
+  },
+  "repository": {
+      "type": "git",
+      "url": "https://github.com/devongovett/png.js.git"
+  },
+  "bugs": "http://github.com/devongovett/png.js/issues",
+  "devDependencies": {
+      "coffee-script": ">=1.0.1"
+  },
+  "scripts": {
+      "prepublish": "coffee -c png-node.coffee"
+  },
+  "main": "png-node.js",
+  "engine": [ "node >= v0.6.0" ]
+}
