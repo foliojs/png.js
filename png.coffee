@@ -248,7 +248,7 @@ class PNG
     decodePalette: ->
         palette = @palette
         transparency = @transparency.indexed or []
-        ret = new Uint8Array((if transparency then 4 else 3) * palette.length)
+        ret = new Uint8Array((transparency.length or 0) + palette.length)
         pos = 0
         length = palette.length
         c = 0

@@ -286,7 +286,7 @@
       var c, i, length, palette, pos, ret, transparency, _ref, _ref2;
       palette = this.palette;
       transparency = this.transparency.indexed || [];
-      ret = new Uint8Array((transparency ? 4 : 3) * palette.length);
+      ret = new Uint8Array((transparency.length || 0) + palette.length);
       pos = 0;
       length = palette.length;
       c = 0;
