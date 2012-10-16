@@ -206,7 +206,7 @@ module.exports = class PNG
     decodePalette: ->
         palette = @palette
         transparency = @transparency.indexed or []
-        ret = new Buffer(transparency.length + palette.length)
+        ret = new Buffer(palette.length / 3 * 4)
         pos = 0
         length = palette.length
         c = 0

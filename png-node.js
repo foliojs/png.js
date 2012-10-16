@@ -244,7 +244,7 @@
       var c, i, length, palette, pos, ret, transparency, _ref, _ref2;
       palette = this.palette;
       transparency = this.transparency.indexed || [];
-      ret = new Buffer((transparency.length || 0) + palette.length);
+      ret = new Buffer(palette.length / 3 * 4);
       pos = 0;
       length = palette.length;
       c = 0;
