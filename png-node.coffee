@@ -113,6 +113,9 @@ module.exports = class PNG
 
             @pos += 4 # Skip the CRC
 
+            if @pos > @data.length
+                throw new Error "Incomplete or corrupt PNG file"
+
         return
         
     read: (bytes) ->
