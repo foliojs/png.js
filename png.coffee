@@ -274,7 +274,7 @@ class PNG
             colors = 4
             alpha = true
         
-        data = imageData.data
+        data = imageData.data or imageData
         length = data.length
         input = palette or pixels
         i = j = 0

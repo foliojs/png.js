@@ -324,7 +324,7 @@
         colors = 4;
         alpha = true;
       }
-      data = imageData.data;
+      data = imageData.data || imageData;
       length = data.length;
       input = palette || pixels;
       i = j = 0;
