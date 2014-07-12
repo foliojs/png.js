@@ -24,7 +24,7 @@ Require the module and decode a PNG
 
     var PNG = require('png-js');
     PNG.decode('some.png', function(pixels) {
-        // pixels is a 1d array of decoded pixel data
+        // pixels is a 1d array (in rgba order) of decoded pixel data
     });
     
 You can also call `PNG.load` if you want to load the PNG (but not decode the pixels) synchronously.  If you already
