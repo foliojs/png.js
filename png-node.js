@@ -45,6 +45,10 @@
       file = fs.readFileSync(path);
       return new PNG(file);
     };
+    
+    PNG.loadBuffer = function(buffer) {
+      return new PNG(buffer);
+    };
 
     function PNG(data) {
       var chunkSize, colors, i, index, key, section, short, text, _i, _j, _ref;
