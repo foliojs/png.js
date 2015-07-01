@@ -19,5 +19,6 @@
       "prepublish": "coffee -c png-node.coffee"
   },
   "main": "png-node.js",
-  "engine": [ "node >= v0.6.0" ]
+  "engine": [ "node >= v0.6.0" ],
+  "files": [ "png-node.js" ]
 }
