@@ -132,11 +132,9 @@ module.exports = class PNG
         b1 = @data[@pos++] << 8
         b2 = @data[@pos++]
         b1 | b2
-        
-    decodePixels: (fn) ->
-        zlib.inflate @imgData, (err, data) =>
-            throw err if err
-            
+
+    decodePixels: (fn, sync) ->
+        worker = (data) =>
             pixelBytes = @pixelBitlength / 8
             scanlineLength = pixelBytes * @width
 
@@ -205,7 +203,14 @@ module.exports = class PNG
                 row++
 
             fn pixels
-        
+
+        if sync
+            worker (zlib.inflateSync @imgData)
+        else
+            zlib.inflate @imgData, (err, data) =>
+                throw err if err
+                worker data
+
     decodePalette: ->
         palette = @palette
         transparency = @transparency.indexed or []
@@ -256,9 +261,10 @@ module.exports = class PNG
                 j = k
             
         return
-        
-    decode: (fn) ->
+
+    decode: (fn, sync) ->
         ret = new Buffer(@width * @height * 4)
-        @decodePixels (pixels) =>
+        worker = (pixels) =>
             @copyToImageData ret, pixels
             fn ret
+        @decodePixels worker, sync
