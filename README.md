@@ -54,6 +54,7 @@ If you want to get the pixel data you can do so like this:
 
 	var imagedata = new ImageData(pnginfo.width, pnginfo.height);
 	pnginfo.copyToImageData(imagedata, pnginfo.decodePixels());
+	var pixels = imagedata.data; // pixels is a 1d array (in rgba order) of decoded pixel data
 
 ## Node.js Usage
 Install the module using npm
