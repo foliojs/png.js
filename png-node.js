@@ -20,28 +20,28 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-const MAX_DATA_SIZE = 65536
+const MAX_DATA_SIZE = 65536;
 
-(function() {
+(function () {
   var PNG, fs, zlib;
 
   fs = require('fs');
 
   zlib = require('zlib');
 
-  module.exports = PNG = (function() {
+  module.exports = PNG = (function () {
 
-    PNG.decode = function(path, fn) {
-      return fs.readFile(path, function(err, file) {
+    PNG.decode = function (path, fn) {
+      return fs.readFile(path, function (err, file) {
         var png;
         png = new PNG(file);
-        return png.decode(function(pixels) {
+        return png.decode(function (pixels) {
           return fn(pixels);
         });
       });
     };
 
-    PNG.load = function(path) {
+    PNG.load = function (path) {
       var file;
       file = fs.readFileSync(path);
       return new PNG(file);
@@ -58,7 +58,7 @@ const MAX_DATA_SIZE = 65536
       this.text = {};
       while (true) {
         chunkSize = this.readUInt32();
-        section = ((function() {
+        section = ((function () {
           var _i, _results;
           _results = [];
           for (i = _i = 0; _i < 4; i = ++_i) {
@@ -78,17 +78,17 @@ const MAX_DATA_SIZE = 65536
             this.interlaceMethod = this.data[this.pos++];
             break;
           case 'PLTE':
-                      dataCount = 0;
+            dataCount = 0;
             this.palette = this.read(chunkSize);
             break;
           case 'IDAT':
-                      dataCount = 0;
+            dataCount = 0;
             for (i = _i = 0; _i < chunkSize; i = _i += 1) {
               this.imgData.push(this.data[this.pos++]);
             }
             break;
           case 'tRNS':
-                      dataCount = 0;
+            dataCount = 0;
             this.transparency = {};
             switch (this.colorType) {
               case 3:
@@ -108,15 +108,15 @@ const MAX_DATA_SIZE = 65536
             }
             break;
           case 'tEXt':
-                      dataCount = 0;
+            dataCount = 0;
             text = this.read(chunkSize);
             index = text.indexOf(0);
             key = String.fromCharCode.apply(String, text.slice(0, index));
             this.text[key] = String.fromCharCode.apply(String, text.slice(index + 1));
             break;
           case 'IEND':
-                      dataCount = 0;
-            this.colors = (function() {
+            dataCount = 0;
+            this.colors = (function () {
               switch (this.colorType) {
                 case 0:
                 case 3:
@@ -130,7 +130,7 @@ const MAX_DATA_SIZE = 65536
             this.hasAlphaChannel = (_ref = this.colorType) === 4 || _ref === 6;
             colors = this.colors + (this.hasAlphaChannel ? 1 : 0);
             this.pixelBitlength = this.bits * colors;
-            this.colorSpace = (function() {
+            this.colorSpace = (function () {
               switch (this.colors) {
                 case 1:
                   return 'DeviceGray';
@@ -141,7 +141,7 @@ const MAX_DATA_SIZE = 65536
             this.imgData = new Buffer(this.imgData);
             return;
           default:
-          dataCount ++;
+            dataCount++;
             this.pos += chunkSize;
         }
         this.pos += 4;
@@ -152,7 +152,7 @@ const MAX_DATA_SIZE = 65536
       return;
     }
 
-    PNG.prototype.read = function(bytes) {
+    PNG.prototype.read = function (bytes) {
       var i, _i, _results;
       _results = [];
       for (i = _i = 0; 0 <= bytes ? _i < bytes : _i > bytes; i = 0 <= bytes ? ++_i : --_i) {
@@ -161,7 +161,7 @@ const MAX_DATA_SIZE = 65536
       return _results;
     };
 
-    PNG.prototype.readUInt32 = function() {
+    PNG.prototype.readUInt32 = function () {
       var b1, b2, b3, b4;
       b1 = this.data[this.pos++] << 24;
       b2 = this.data[this.pos++] << 16;
@@ -170,16 +170,16 @@ const MAX_DATA_SIZE = 65536
       return b1 | b2 | b3 | b4;
     };
 
-    PNG.prototype.readUInt16 = function() {
+    PNG.prototype.readUInt16 = function () {
       var b1, b2;
       b1 = this.data[this.pos++] << 8;
       b2 = this.data[this.pos++];
       return b1 | b2;
     };
 
-    PNG.prototype.decodePixels = function(fn) {
+    PNG.prototype.decodePixels = function (fn) {
       var _this = this;
-      return zlib.inflate(this.imgData, function(err, data) {
+      return zlib.inflate(this.imgData, function (err, data) {
         var byte, c, col, i, left, length, p, pa, paeth, pb, pc, pixelBytes, pixels, pos, row, scanlineLength, upper, upperLeft, _i, _j, _k, _l, _m;
         if (err) {
           throw err;
@@ -256,7 +256,7 @@ const MAX_DATA_SIZE = 65536
       });
     };
 
-    PNG.prototype.decodePalette = function() {
+    PNG.prototype.decodePalette = function () {
       var c, i, length, palette, pos, ret, transparency, _i, _ref, _ref1;
       palette = this.palette;
       transparency = this.transparency.indexed || [];
@@ -273,7 +273,7 @@ const MAX_DATA_SIZE = 65536
       return ret;
     };
 
-    PNG.prototype.copyToImageData = function(imageData, pixels) {
+    PNG.prototype.copyToImageData = function (imageData, pixels) {
       var alpha, colors, data, i, input, j, k, length, palette, v, _ref;
       colors = this.colors;
       palette = null;
@@ -309,11 +309,11 @@ const MAX_DATA_SIZE = 65536
       }
     };
 
-    PNG.prototype.decode = function(fn) {
+    PNG.prototype.decode = function (fn) {
       var ret,
         _this = this;
       ret = new Buffer(this.width * this.height * 4);
-      return this.decodePixels(function(pixels) {
+      return this.decodePixels(function (pixels) {
         _this.copyToImageData(ret, pixels);
         return fn(ret);
       });
