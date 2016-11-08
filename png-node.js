@@ -20,6 +20,7 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
+const MAX_DATA_SIZE = 65536
 
 (function() {
   var PNG, fs, zlib;
@@ -47,9 +48,10 @@
     };
 
     function PNG(data) {
-      var chunkSize, colors, i, index, key, section, short, text, _i, _j, _ref;
+      var chunkSize, colors, i, index, key, section, short, text, _i, _j, _ref, dataCount;
       this.data = data;
       this.pos = 8;
+      dataCount = 0;
       this.palette = [];
       this.imgData = [];
       this.transparency = {};
@@ -66,6 +68,7 @@
         }).call(this)).join('');
         switch (section) {
           case 'IHDR':
+            dataCount = 0;
             this.width = this.readUInt32();
             this.height = this.readUInt32();
             this.bits = this.data[this.pos++];
@@ -75,14 +78,17 @@
             this.interlaceMethod = this.data[this.pos++];
             break;
           case 'PLTE':
+                      dataCount = 0;
             this.palette = this.read(chunkSize);
             break;
           case 'IDAT':
+                      dataCount = 0;
             for (i = _i = 0; _i < chunkSize; i = _i += 1) {
               this.imgData.push(this.data[this.pos++]);
             }
             break;
           case 'tRNS':
+                      dataCount = 0;
             this.transparency = {};
             switch (this.colorType) {
               case 3:
@@ -102,12 +108,14 @@
             }
             break;
           case 'tEXt':
+                      dataCount = 0;
             text = this.read(chunkSize);
             index = text.indexOf(0);
             key = String.fromCharCode.apply(String, text.slice(0, index));
             this.text[key] = String.fromCharCode.apply(String, text.slice(index + 1));
             break;
           case 'IEND':
+                      dataCount = 0;
             this.colors = (function() {
               switch (this.colorType) {
                 case 0:
@@ -133,11 +141,12 @@
             this.imgData = new Buffer(this.imgData);
             return;
           default:
+          dataCount ++;
             this.pos += chunkSize;
         }
         this.pos += 4;
-        if (this.pos > this.data.length) {
-          throw new Error("Incomplete or corrupt PNG file");
+        if (this.pos > this.data.length || dataCount > MAX_DATA_SIZE) {
+          return new Error("Incomplete or corrupt PNG file");
         }
       }
       return;
