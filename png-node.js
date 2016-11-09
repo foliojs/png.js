@@ -146,7 +146,7 @@ const MAX_DATA_SIZE = 65536;
         }
         this.pos += 4;
         if (this.pos > this.data.length || dataCount > MAX_DATA_SIZE) {
-          return new Error("Incomplete or corrupt PNG file");
+          throw new Error("Incomplete or corrupt PNG file");
         }
       }
       return;
