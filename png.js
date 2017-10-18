@@ -3,24 +3,24 @@
 /*
 # MIT LICENSE
 # Copyright (c) 2011 Devon Govett
-# 
-# Permission is hereby granted, free of charge, to any person obtaining a copy of this 
-# software and associated documentation files (the "Software"), to deal in the Software 
-# without restriction, including without limitation the rights to use, copy, modify, merge, 
-# publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons 
+#
+# Permission is hereby granted, free of charge, to any person obtaining a copy of this
+# software and associated documentation files (the "Software"), to deal in the Software
+# without restriction, including without limitation the rights to use, copy, modify, merge,
+# publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons
 # to whom the Software is furnished to do so, subject to the following conditions:
-# 
-# The above copyright notice and this permission notice shall be included in all copies or 
+#
+# The above copyright notice and this permission notice shall be included in all copies or
 # substantial portions of the Software.
-# 
-# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING 
-# BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND 
-# NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, 
-# DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, 
+#
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING
+# BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+# NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM,
+# DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-
+var globalForPNGJS = this;
 (function() {
   var PNG;
 
@@ -357,20 +357,22 @@
       return ret;
     };
 
-    scratchCanvas = document.createElement('canvas');
+	if (typeof(document) != 'undefined') {
+	    scratchCanvas = document.createElement('canvas');
 
-    scratchCtx = scratchCanvas.getContext('2d');
+	    scratchCtx = scratchCanvas.getContext('2d');
 
-    makeImage = function(imageData) {
-      var img;
-      scratchCtx.width = imageData.width;
-      scratchCtx.height = imageData.height;
-      scratchCtx.clearRect(0, 0, imageData.width, imageData.height);
-      scratchCtx.putImageData(imageData, 0, 0);
-      img = new Image;
-      img.src = scratchCanvas.toDataURL();
-      return img;
-    };
+	    makeImage = function(imageData) {
+	      var img;
+	      scratchCtx.width = imageData.width;
+	      scratchCtx.height = imageData.height;
+	      scratchCtx.clearRect(0, 0, imageData.width, imageData.height);
+	      scratchCtx.putImageData(imageData, 0, 0);
+	      img = new Image;
+	      img.src = scratchCanvas.toDataURL();
+	      return img;
+	    };
+	}
 
     PNG.prototype.decodeFrames = function(ctx) {
       var frame, i, imageData, pixels, _i, _len, _ref, _results;
@@ -453,6 +455,6 @@
 
   })();
 
-  window.PNG = PNG;
+  globalForPNGJS.PNG = PNG;
 
 }).call(this);

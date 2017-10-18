@@ -14,7 +14,48 @@ Simply include png.js and zlib.js on your HTML page, create a canvas element, an
     </script>
     
 The source code for the browser version resides in `png.js` and also supports loading and displaying animated PNGs.
+
+### Without `canvas`
+If you use this from Web Workers where there is no `document` and thus no `canvas`, or if you just don't want to use a canvas you can pass a callback to the second argument:
+
+    <script src="zlib.js"></script>
+    <script src="png.js"></script>
+    <script>
+        var canvas = document.getElementsByTagName('canvas')[0];
+        PNG.load('some.png', function(pnginfo) {
+            console.log('pnginfo:', pnginfo);
+        });
+    </script>
     
+This will log to console:
+
+> {
+> 	animation: null,
+> 	bits: 8,
+> 	colorSpace: "DeviceRGB",
+> 	colorType: 6,
+> 	colors: 3,
+> 	compressionMethod: 0,
+> 	data: Uint8Array[9878],
+> 	filterMethod: 0,
+> 	hasAlphaChannel: true,
+> 	height: 64,
+> 	imgData: Uint8Array[7184],
+> 	interlaceMethod: 0,
+> 	palette: Array[0],
+> 	pixelBitlength: 32,
+> 	pos: 9874,
+> 	text: Object,
+> 	transparency: Object,
+> 	width: 64
+> }
+
+If you want to get the pixel data you can do so like this:
+
+	var imagedata = new ImageData(pnginfo.width, pnginfo.height);
+	pnginfo.copyToImageData(imagedata, pnginfo.decodePixels());
+	var pixels = imagedata.data; // pixels is a 1d array (in rgba order) of decoded pixel data
+
 ## Node.js Usage
 Install the module using npm
 
