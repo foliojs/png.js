@@ -2,6 +2,13 @@
   "name": "png-js",
   "description": "A PNG decoder in CoffeeScript",
   "version": "0.1.1",
+  "keywords": [
+    "png",
+    "decode",
+    "pixels",
+    "rgb",
+    "rgba"
+  ],
   "author": {
       "name": "Devon Govett",
       "email": "devongovett@gmail.com",
