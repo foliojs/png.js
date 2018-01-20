@@ -3,30 +3,30 @@
 /*
 # MIT LICENSE
 # Copyright (c) 2011 Devon Govett
-# 
-# Permission is hereby granted, free of charge, to any person obtaining a copy of this 
-# software and associated documentation files (the "Software"), to deal in the Software 
-# without restriction, including without limitation the rights to use, copy, modify, merge, 
-# publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons 
+#
+# Permission is hereby granted, free of charge, to any person obtaining a copy of this
+# software and associated documentation files (the "Software"), to deal in the Software
+# without restriction, including without limitation the rights to use, copy, modify, merge,
+# publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons
 # to whom the Software is furnished to do so, subject to the following conditions:
-# 
-# The above copyright notice and this permission notice shall be included in all copies or 
+#
+# The above copyright notice and this permission notice shall be included in all copies or
 # substantial portions of the Software.
-# 
-# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING 
-# BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND 
-# NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, 
-# DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, 
+#
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING
+# BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+# NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM,
+# DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
 
 (function() {
-  var PNG, fs, zlib;
+  var PNG, fs, pako;
 
   fs = require('fs');
 
-  zlib = require('zlib');
+  pako = require('pako');
 
   module.exports = PNG = (function() {
 
@@ -169,82 +169,83 @@
     };
 
     PNG.prototype.decodePixels = function(fn) {
-      var _this = this;
-      return zlib.inflate(this.imgData, function(err, data) {
-        var byte, c, col, i, left, length, p, pa, paeth, pb, pc, pixelBytes, pixels, pos, row, scanlineLength, upper, upperLeft, _i, _j, _k, _l, _m;
-        if (err) {
-          throw err;
+      var pixels;
+      pixels = this.decodePixelsSync();
+      return fn(pixels);
+    };
+
+    PNG.prototype.decodePixelsSync = function() {
+      var byte, c, col, data, i, left, length, p, pa, paeth, pb, pc, pixelBytes, pixels, pos, row, scanlineLength, upper, upperLeft, _i, _j, _k, _l, _m;
+      data = pako.inflate(this.imgData);
+      pixelBytes = this.pixelBitlength / 8;
+      scanlineLength = pixelBytes * this.width;
+      pixels = new Buffer(scanlineLength * this.height);
+      length = data.length;
+      row = 0;
+      pos = 0;
+      c = 0;
+      while (pos < length) {
+        switch (data[pos++]) {
+          case 0:
+            for (i = _i = 0; _i < scanlineLength; i = _i += 1) {
+              pixels[c++] = data[pos++];
+            }
+            break;
+          case 1:
+            for (i = _j = 0; _j < scanlineLength; i = _j += 1) {
+              byte = data[pos++];
+              left = i < pixelBytes ? 0 : pixels[c - pixelBytes];
+              pixels[c++] = (byte + left) % 256;
+            }
+            break;
+          case 2:
+            for (i = _k = 0; _k < scanlineLength; i = _k += 1) {
+              byte = data[pos++];
+              col = (i - (i % pixelBytes)) / pixelBytes;
+              upper = row && pixels[(row - 1) * scanlineLength + col * pixelBytes + (i % pixelBytes)];
+              pixels[c++] = (upper + byte) % 256;
+            }
+            break;
+          case 3:
+            for (i = _l = 0; _l < scanlineLength; i = _l += 1) {
+              byte = data[pos++];
+              col = (i - (i % pixelBytes)) / pixelBytes;
+              left = i < pixelBytes ? 0 : pixels[c - pixelBytes];
+              upper = row && pixels[(row - 1) * scanlineLength + col * pixelBytes + (i % pixelBytes)];
+              pixels[c++] = (byte + Math.floor((left + upper) / 2)) % 256;
+            }
+            break;
+          case 4:
+            for (i = _m = 0; _m < scanlineLength; i = _m += 1) {
+              byte = data[pos++];
+              col = (i - (i % pixelBytes)) / pixelBytes;
+              left = i < pixelBytes ? 0 : pixels[c - pixelBytes];
+              if (row === 0) {
+                upper = upperLeft = 0;
+              } else {
+                upper = pixels[(row - 1) * scanlineLength + col * pixelBytes + (i % pixelBytes)];
+                upperLeft = col && pixels[(row - 1) * scanlineLength + (col - 1) * pixelBytes + (i % pixelBytes)];
+              }
+              p = left + upper - upperLeft;
+              pa = Math.abs(p - left);
+              pb = Math.abs(p - upper);
+              pc = Math.abs(p - upperLeft);
+              if (pa <= pb && pa <= pc) {
+                paeth = left;
+              } else if (pb <= pc) {
+                paeth = upper;
+              } else {
+                paeth = upperLeft;
+              }
+              pixels[c++] = (byte + paeth) % 256;
+            }
+            break;
+          default:
+            throw new Error("Invalid filter algorithm: " + data[pos - 1]);
         }
-        pixelBytes = _this.pixelBitlength / 8;
-        scanlineLength = pixelBytes * _this.width;
-        pixels = new Buffer(scanlineLength * _this.height);
-        length = data.length;
-        row = 0;
-        pos = 0;
-        c = 0;
-        while (pos < length) {
-          switch (data[pos++]) {
-            case 0:
-              for (i = _i = 0; _i < scanlineLength; i = _i += 1) {
-                pixels[c++] = data[pos++];
-              }
-              break;
-            case 1:
-              for (i = _j = 0; _j < scanlineLength; i = _j += 1) {
-                byte = data[pos++];
-                left = i < pixelBytes ? 0 : pixels[c - pixelBytes];
-                pixels[c++] = (byte + left) % 256;
-              }
-              break;
-            case 2:
-              for (i = _k = 0; _k < scanlineLength; i = _k += 1) {
-                byte = data[pos++];
-                col = (i - (i % pixelBytes)) / pixelBytes;
-                upper = row && pixels[(row - 1) * scanlineLength + col * pixelBytes + (i % pixelBytes)];
-                pixels[c++] = (upper + byte) % 256;
-              }
-              break;
-            case 3:
-              for (i = _l = 0; _l < scanlineLength; i = _l += 1) {
-                byte = data[pos++];
-                col = (i - (i % pixelBytes)) / pixelBytes;
-                left = i < pixelBytes ? 0 : pixels[c - pixelBytes];
-                upper = row && pixels[(row - 1) * scanlineLength + col * pixelBytes + (i % pixelBytes)];
-                pixels[c++] = (byte + Math.floor((left + upper) / 2)) % 256;
-              }
-              break;
-            case 4:
-              for (i = _m = 0; _m < scanlineLength; i = _m += 1) {
-                byte = data[pos++];
-                col = (i - (i % pixelBytes)) / pixelBytes;
-                left = i < pixelBytes ? 0 : pixels[c - pixelBytes];
-                if (row === 0) {
-                  upper = upperLeft = 0;
-                } else {
-                  upper = pixels[(row - 1) * scanlineLength + col * pixelBytes + (i % pixelBytes)];
-                  upperLeft = col && pixels[(row - 1) * scanlineLength + (col - 1) * pixelBytes + (i % pixelBytes)];
-                }
-                p = left + upper - upperLeft;
-                pa = Math.abs(p - left);
-                pb = Math.abs(p - upper);
-                pc = Math.abs(p - upperLeft);
-                if (pa <= pb && pa <= pc) {
-                  paeth = left;
-                } else if (pb <= pc) {
-                  paeth = upper;
-                } else {
-                  paeth = upperLeft;
-                }
-                pixels[c++] = (byte + paeth) % 256;
-              }
-              break;
-            default:
-              throw new Error("Invalid filter algorithm: " + data[pos - 1]);
-          }
-          row++;
-        }
-        return fn(pixels);
-      });
+        row++;
+      }
+      return pixels;
     };
 
     PNG.prototype.decodePalette = function() {
@@ -308,6 +309,14 @@
         _this.copyToImageData(ret, pixels);
         return fn(ret);
       });
+    };
+
+    PNG.prototype.decodeSync = function() {
+      var pixels, ret;
+      ret = new Buffer(this.width * this.height * 4);
+      pixels = this.decodePixelsSync();
+      this.copyToImageData(ret, pixels);
+      return ret;
     };
 
     return PNG;

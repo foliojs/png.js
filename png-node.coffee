@@ -1,25 +1,25 @@
 ###
 # MIT LICENSE
 # Copyright (c) 2011 Devon Govett
-# 
-# Permission is hereby granted, free of charge, to any person obtaining a copy of this 
-# software and associated documentation files (the "Software"), to deal in the Software 
-# without restriction, including without limitation the rights to use, copy, modify, merge, 
-# publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons 
+#
+# Permission is hereby granted, free of charge, to any person obtaining a copy of this
+# software and associated documentation files (the "Software"), to deal in the Software
+# without restriction, including without limitation the rights to use, copy, modify, merge,
+# publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons
 # to whom the Software is furnished to do so, subject to the following conditions:
-# 
-# The above copyright notice and this permission notice shall be included in all copies or 
+#
+# The above copyright notice and this permission notice shall be included in all copies or
 # substantial portions of the Software.
-# 
-# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING 
-# BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND 
-# NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, 
-# DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, 
+#
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING
+# BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+# NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM,
+# DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 ###
 
 fs = require 'fs'
-zlib = require 'zlib'
+pako = require 'pako'
 
 module.exports = class PNG
     @decode: (path, fn) ->
@@ -27,11 +27,11 @@ module.exports = class PNG
            png = new PNG(file)
            png.decode (pixels) ->
                fn pixels
-               
+
     @load: (path) ->
         file = fs.readFileSync path
         return new PNG(file)
-    
+
     constructor: (@data) ->
         @pos = 8  # Skip the default header
 
@@ -85,7 +85,7 @@ module.exports = class PNG
                             @transparency.rgb = @read(chunkSize)
 
                 when 'tEXt'
-                    text = @read(chunkSize)                    
+                    text = @read(chunkSize)
                     index = text.indexOf(0)
                     key = String.fromCharCode text.slice(0, index)...
                     @text[key] = String.fromCharCode text.slice(index + 1)...
@@ -97,7 +97,7 @@ module.exports = class PNG
                         when 2, 6 then 3
 
                     @hasAlphaChannel = @colorType in [4, 6]
-                    colors = @colors + if @hasAlphaChannel then 1 else 0    
+                    colors = @colors + if @hasAlphaChannel then 1 else 0
                     @pixelBitlength = @bits * colors
 
                     @colorSpace = switch @colors
@@ -117,95 +117,98 @@ module.exports = class PNG
                 throw new Error "Incomplete or corrupt PNG file"
 
         return
-        
+
     read: (bytes) ->
         (@data[@pos++] for i in [0...bytes])
-    
+
     readUInt32: ->
         b1 = @data[@pos++] << 24
         b2 = @data[@pos++] << 16
         b3 = @data[@pos++] << 8
         b4 = @data[@pos++]
         b1 | b2 | b3 | b4
-        
+
     readUInt16: ->
         b1 = @data[@pos++] << 8
         b2 = @data[@pos++]
         b1 | b2
-        
+
     decodePixels: (fn) ->
-        zlib.inflate @imgData, (err, data) =>
-            throw err if err
-            
-            pixelBytes = @pixelBitlength / 8
-            scanlineLength = pixelBytes * @width
+        pixels = @decodePixelsSync()
+        fn pixels
 
-            pixels = new Buffer(scanlineLength * @height)
-            length = data.length
-            row = 0
-            pos = 0
-            c = 0
+    decodePixelsSync: ->
+        data = pako.inflate(@imgData)
 
-            while pos < length
-                switch data[pos++]
-                    when 0 # None
-                        for i in [0...scanlineLength] by 1
-                            pixels[c++] = data[pos++]
+        pixelBytes = @pixelBitlength / 8
+        scanlineLength = pixelBytes * @width
 
-                    when 1 # Sub
-                        for i in [0...scanlineLength] by 1
-                            byte = data[pos++]
-                            left = if i < pixelBytes then 0 else pixels[c - pixelBytes]
-                            pixels[c++] = (byte + left) % 256
+        pixels = new Buffer(scanlineLength * @height)
+        length = data.length
+        row = 0
+        pos = 0
+        c = 0
 
-                    when 2 # Up
-                        for i in [0...scanlineLength] by 1
-                            byte = data[pos++]
-                            col = (i - (i % pixelBytes)) / pixelBytes
-                            upper = row && pixels[(row - 1) * scanlineLength + col * pixelBytes + (i % pixelBytes)]
-                            pixels[c++] = (upper + byte) % 256
+        while pos < length
+            switch data[pos++]
+                when 0 # None
+                    for i in [0...scanlineLength] by 1
+                        pixels[c++] = data[pos++]
 
-                    when 3 # Average
-                        for i in [0...scanlineLength] by 1
-                            byte = data[pos++]
-                            col = (i - (i % pixelBytes)) / pixelBytes
-                            left = if i < pixelBytes then 0 else pixels[c - pixelBytes]
-                            upper = row && pixels[(row - 1) * scanlineLength + col * pixelBytes + (i % pixelBytes)]
-                            pixels[c++] = (byte + Math.floor((left + upper) / 2)) % 256
+                when 1 # Sub
+                    for i in [0...scanlineLength] by 1
+                        byte = data[pos++]
+                        left = if i < pixelBytes then 0 else pixels[c - pixelBytes]
+                        pixels[c++] = (byte + left) % 256
 
-                    when 4 # Paeth
-                        for i in [0...scanlineLength] by 1
-                            byte = data[pos++]
-                            col = (i - (i % pixelBytes)) / pixelBytes
-                            left = if i < pixelBytes then 0 else pixels[c - pixelBytes]
+                when 2 # Up
+                    for i in [0...scanlineLength] by 1
+                        byte = data[pos++]
+                        col = (i - (i % pixelBytes)) / pixelBytes
+                        upper = row && pixels[(row - 1) * scanlineLength + col * pixelBytes + (i % pixelBytes)]
+                        pixels[c++] = (upper + byte) % 256
 
-                            if row is 0
-                                upper = upperLeft = 0
-                            else
-                                upper = pixels[(row - 1) * scanlineLength + col * pixelBytes + (i % pixelBytes)]
-                                upperLeft = col && pixels[(row - 1) * scanlineLength + (col - 1) * pixelBytes + (i % pixelBytes)]
+                when 3 # Average
+                    for i in [0...scanlineLength] by 1
+                        byte = data[pos++]
+                        col = (i - (i % pixelBytes)) / pixelBytes
+                        left = if i < pixelBytes then 0 else pixels[c - pixelBytes]
+                        upper = row && pixels[(row - 1) * scanlineLength + col * pixelBytes + (i % pixelBytes)]
+                        pixels[c++] = (byte + Math.floor((left + upper) / 2)) % 256
 
-                            p = left + upper - upperLeft
-                            pa = Math.abs(p - left)
-                            pb = Math.abs(p - upper)
-                            pc = Math.abs(p - upperLeft)
+                when 4 # Paeth
+                    for i in [0...scanlineLength] by 1
+                        byte = data[pos++]
+                        col = (i - (i % pixelBytes)) / pixelBytes
+                        left = if i < pixelBytes then 0 else pixels[c - pixelBytes]
 
-                            if pa <= pb and pa <= pc
-                                paeth = left
-                            else if pb <= pc
-                                paeth = upper
-                            else
-                                paeth = upperLeft
+                        if row is 0
+                            upper = upperLeft = 0
+                        else
+                            upper = pixels[(row - 1) * scanlineLength + col * pixelBytes + (i % pixelBytes)]
+                            upperLeft = col && pixels[(row - 1) * scanlineLength + (col - 1) * pixelBytes + (i % pixelBytes)]
 
-                            pixels[c++] = (byte + paeth) % 256
+                        p = left + upper - upperLeft
+                        pa = Math.abs(p - left)
+                        pb = Math.abs(p - upper)
+                        pc = Math.abs(p - upperLeft)
 
-                    else
-                        throw new Error "Invalid filter algorithm: " + data[pos - 1] 
+                        if pa <= pb and pa <= pc
+                            paeth = left
+                        else if pb <= pc
+                            paeth = upper
+                        else
+                            paeth = upperLeft
 
-                row++
+                        pixels[c++] = (byte + paeth) % 256
 
-            fn pixels
-        
+                else
+                    throw new Error "Invalid filter algorithm: " + data[pos - 1]
+
+            row++
+
+        return pixels
+
     decodePalette: ->
         palette = @palette
         transparency = @transparency.indexed or []
@@ -213,30 +216,30 @@ module.exports = class PNG
         pos = 0
         length = palette.length
         c = 0
-        
+
         for i in [0...palette.length] by 3
             ret[pos++] = palette[i]
             ret[pos++] = palette[i + 1]
             ret[pos++] = palette[i + 2]
             ret[pos++] = transparency[c++] ? 255
-            
+
         return ret
-        
+
     copyToImageData: (imageData, pixels) ->
         colors = @colors
         palette = null
         alpha = @hasAlphaChannel
-        
+
         if @palette.length
             palette = @_decodedPalette ?= @decodePalette()
             colors = 4
             alpha = true
-        
+
         data = imageData?.data or imageData
         length = data.length
         input = palette or pixels
         i = j = 0
-        
+
         if colors is 1
             while i < length
                 k = if palette then pixels[i / 4] * 4 else j
@@ -254,11 +257,17 @@ module.exports = class PNG
                 data[i++] = input[k++]
                 data[i++] = if alpha then input[k++] else 255
                 j = k
-            
+
         return
-        
+
     decode: (fn) ->
         ret = new Buffer(@width * @height * 4)
         @decodePixels (pixels) =>
             @copyToImageData ret, pixels
             fn ret
+
+    decodeSync: ->
+        ret = new Buffer(@width * @height * 4)
+        pixels = @decodePixelsSync()
+        @copyToImageData ret, pixels
+        return ret
