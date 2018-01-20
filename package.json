@@ -13,7 +13,7 @@
   },
   "bugs": "http://github.com/devongovett/png.js/issues",
   "devDependencies": {
-      "coffee-script": ">=1.0.1"
+      "coffee-script": "1.4.0"
   },
   "scripts": {
       "prepublish": "coffee -c png-node.coffee"
