@@ -22,29 +22,11 @@
 
 
 (function() {
-  var PNG, fs, pako;
-
-  fs = require('fs');
+  var PNG, pako;
 
   pako = require('pako');
 
   module.exports = PNG = (function() {
-
-    PNG.decode = function(path, fn) {
-      return fs.readFile(path, function(err, file) {
-        var png;
-        png = new PNG(file);
-        return png.decode(function(pixels) {
-          return fn(pixels);
-        });
-      });
-    };
-
-    PNG.load = function(path) {
-      var file;
-      file = fs.readFileSync(path);
-      return new PNG(file);
-    };
 
     function PNG(data) {
       var chunkSize, colors, i, index, key, section, short, text, _i, _j, _ref;

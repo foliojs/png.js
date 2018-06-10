@@ -18,20 +18,9 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 ###
 
-fs = require 'fs'
 pako = require 'pako'
 
 module.exports = class PNG
-    @decode: (path, fn) ->
-       fs.readFile path, (err, file) ->
-           png = new PNG(file)
-           png.decode (pixels) ->
-               fn pixels
-
-    @load: (path) ->
-        file = fs.readFileSync path
-        return new PNG(file)
-
     constructor: (@data) ->
         @pos = 8  # Skip the default header
 
