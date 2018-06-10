@@ -112,7 +112,7 @@
                   return 'DeviceRGB';
               }
             }).call(this);
-            this.imgData = new Buffer(this.imgData);
+            this.imgData = new Uint8Array(this.imgData);
             return;
           default:
             this.pos += chunkSize;
@@ -161,7 +161,7 @@
       data = pako.inflate(this.imgData);
       pixelBytes = this.pixelBitlength / 8;
       scanlineLength = pixelBytes * this.width;
-      pixels = new Buffer(scanlineLength * this.height);
+      pixels = new Uint8Array(scanlineLength * this.height);
       length = data.length;
       row = 0;
       pos = 0;
@@ -234,7 +234,7 @@
       var c, i, length, palette, pos, ret, transparency, _i, _ref, _ref1;
       palette = this.palette;
       transparency = this.transparency.indexed || [];
-      ret = new Buffer(transparency.length + palette.length);
+      ret = new Uint8Array(transparency.length + palette.length);
       pos = 0;
       length = palette.length;
       c = 0;
@@ -286,7 +286,7 @@
     PNG.prototype.decode = function(fn) {
       var ret,
         _this = this;
-      ret = new Buffer(this.width * this.height * 4);
+      ret = new Uint8Array(this.width * this.height * 4);
       return this.decodePixels(function(pixels) {
         _this.copyToImageData(ret, pixels);
         return fn(ret);
@@ -295,7 +295,7 @@
 
     PNG.prototype.decodeSync = function() {
       var pixels, ret;
-      ret = new Buffer(this.width * this.height * 4);
+      ret = new Uint8Array(this.width * this.height * 4);
       pixels = this.decodePixelsSync();
       this.copyToImageData(ret, pixels);
       return ret;

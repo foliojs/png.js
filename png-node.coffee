@@ -93,7 +93,7 @@ module.exports = class PNG
                         when 1 then 'DeviceGray'
                         when 3 then 'DeviceRGB'
 
-                    @imgData = new Buffer @imgData
+                    @imgData = new Uint8Array @imgData
                     return
 
                 else
@@ -132,7 +132,7 @@ module.exports = class PNG
         pixelBytes = @pixelBitlength / 8
         scanlineLength = pixelBytes * @width
 
-        pixels = new Buffer(scanlineLength * @height)
+        pixels = new Uint8Array(scanlineLength * @height)
         length = data.length
         row = 0
         pos = 0
@@ -201,7 +201,7 @@ module.exports = class PNG
     decodePalette: ->
         palette = @palette
         transparency = @transparency.indexed or []
-        ret = new Buffer(transparency.length + palette.length)
+        ret = new Uint8Array(transparency.length + palette.length)
         pos = 0
         length = palette.length
         c = 0
@@ -250,13 +250,13 @@ module.exports = class PNG
         return
 
     decode: (fn) ->
-        ret = new Buffer(@width * @height * 4)
+        ret = new Uint8Array(@width * @height * 4)
         @decodePixels (pixels) =>
             @copyToImageData ret, pixels
             fn ret
 
     decodeSync: ->
-        ret = new Buffer(@width * @height * 4)
+        ret = new Uint8Array(@width * @height * 4)
         pixels = @decodePixelsSync()
         @copyToImageData ret, pixels
         return ret
