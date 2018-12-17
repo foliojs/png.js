@@ -1,19 +1,10 @@
-// TODO:
-// * See how much 'pako' inflates the bundle size
-// * Replace the ugly switch statements with if-statements
-// * Add unit tests!
-// * Add private access modifiers to fields/methods
-// * Remove the _decodedPalette feature?
-
 import pako from 'pako';
 
 export type ColorSpace = 'DeviceGray' | 'DeviceRGB';
 
 export default class PNG {
-  static from = (data: Uint8Array) => new PNG(data);
+  static load = (data: Uint8Array) => new PNG(data);
 
-  data: Uint8Array;
-  pos: number;
   palette: number[];
   imgData: Uint8Array;
   transparency: {
@@ -33,6 +24,9 @@ export default class PNG {
   hasAlphaChannel: boolean;
   pixelBitlength: number;
   colorSpace: ColorSpace;
+
+  private data: Uint8Array;
+  private pos: number;
 
   constructor(data: Uint8Array) {
     this.data = data;
@@ -154,23 +148,54 @@ export default class PNG {
     }
   }
 
-  read = (numBytes: number): number[] => {
-    const results = [];
-    for (let i = 0; i < numBytes; i++) {
-      results[i] = this.data[this.pos++];
+  decode = () => {
+    const retVal = new Uint8Array(this.width * this.height * 4);
+    const pixels = this.decodePixels();
+    this.copyImageDataToBuffer(retVal, pixels);
+    return retVal;
+  };
+
+  copyImageDataToBuffer = (imageData: Uint8Array, pixels: Uint8Array): void => {
+    let colors: 1 | 3 | 4 = this.colors;
+    let palette;
+    let alpha = this.hasAlphaChannel;
+
+    if (this.palette.length) {
+      palette = this.decodePalette();
+      colors = 4;
+      alpha = true;
     }
-    return results;
+
+    const data = imageData;
+    const length = data.length;
+    const input = palette || pixels;
+
+    let i = 0;
+    let j = 0;
+
+    if (colors === 1) {
+      while (i < length) {
+        let k = palette ? pixels[i / 4] * 4 : j;
+        const v = input[k++];
+        data[i++] = v;
+        data[i++] = v;
+        data[i++] = v;
+        data[i++] = alpha ? input[k++] : 255;
+        j = k;
+      }
+    } else {
+      while (i < length) {
+        let k = palette ? pixels[i / 4] * 4 : j;
+        data[i++] = input[k++];
+        data[i++] = input[k++];
+        data[i++] = input[k++];
+        data[i++] = alpha ? input[k++] : 255;
+        j = k;
+      }
+    }
   };
 
-  readUInt32 = (): number => {
-    const b1 = this.data[this.pos++] << 24;
-    const b2 = this.data[this.pos++] << 16;
-    const b3 = this.data[this.pos++] << 8;
-    const b4 = this.data[this.pos++];
-    return b1 | b2 | b3 | b4;
-  };
-
-  decodePixelsSync = (): Uint8Array => {
+  decodePixels = (): Uint8Array => {
     const data = pako.inflate(this.imgData);
 
     const pixelBytes = this.pixelBitlength / 8;
@@ -283,7 +308,23 @@ export default class PNG {
     return pixels;
   };
 
-  decodePalette = (): Uint8Array => {
+  private read = (numBytes: number): number[] => {
+    const results = [];
+    for (let i = 0; i < numBytes; i++) {
+      results[i] = this.data[this.pos++];
+    }
+    return results;
+  };
+
+  private readUInt32 = (): number => {
+    const b1 = this.data[this.pos++] << 24;
+    const b2 = this.data[this.pos++] << 16;
+    const b3 = this.data[this.pos++] << 8;
+    const b4 = this.data[this.pos++];
+    return b1 | b2 | b3 | b4;
+  };
+
+  private decodePalette = (): Uint8Array => {
     const palette = this.palette;
     const transparency = this.transparency.indexed || [];
     const retVal = new Uint8Array(transparency.length + palette.length);
@@ -298,53 +339,6 @@ export default class PNG {
       retVal[pos++] = temp !== undefined ? temp : 255;
     }
 
-    return retVal;
-  };
-
-  copyToImageData = (imageData: Uint8Array, pixels: Uint8Array): void => {
-    let colors: 1 | 3 | 4 = this.colors;
-    let palette;
-    let alpha = this.hasAlphaChannel;
-
-    if (this.palette.length) {
-      palette = this.decodePalette();
-      colors = 4;
-      alpha = true;
-    }
-
-    const data = imageData;
-    const length = data.length;
-    const input = palette || pixels;
-
-    let i = 0;
-    let j = 0;
-
-    if (colors === 1) {
-      while (i < length) {
-        let k = palette ? pixels[i / 4] * 4 : j;
-        const v = input[k++];
-        data[i++] = v;
-        data[i++] = v;
-        data[i++] = v;
-        data[i++] = alpha ? input[k++] : 255;
-        j = k;
-      }
-    } else {
-      while (i < length) {
-        let k = palette ? pixels[i / 4] * 4 : j;
-        data[i++] = input[k++];
-        data[i++] = input[k++];
-        data[i++] = input[k++];
-        data[i++] = alpha ? input[k++] : 255;
-        j = k;
-      }
-    }
-  };
-
-  decodeSync = () => {
-    const retVal = new Uint8Array(this.width * this.height * 4);
-    const pixels = this.decodePixelsSync();
-    this.copyToImageData(retVal, pixels);
     return retVal;
   };
 }

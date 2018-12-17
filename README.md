@@ -1,49 +1,76 @@
-**NOTE:** All credit for this code belongs to the developers of https://github.com/devongovett/png.js
-# Purpose of this Fork
-This fork was created for use in https://github.com/Hopding/pdf-lib.
+# png-ts
 
-**Update 6/10/2018:** The static `PNG.decode` and `PNG.load` methods have been removed from the `PNG` class in the `png-node.coffee` (and thus `png-node.js`) file. This allows all references to the `fs` module to be removed from those files. This was done to prevent packaging errors when using the module in a React Native app.
+<!-- NPM Version -->
+<a href="https://www.npmjs.com/package/png-ts">
+  <img
+    src="https://img.shields.io/npm/v/png-ts.svg?style=flat-square"
+    alt="NPM Version"
+  />
+</a>
 
-The original repository offered a `decode` method and a `decodePixels` method on `PNG` objects. Both of these methods were asynchronous (when using the package installed via `npm`), and they passed their results to a callback function. This was necessary because the original repository used Node's `zlib` module for decoding the PNG data, which is inherently asynchronous. However, this asynchronous behavior is not always desirable. For example, in the case of [`pdf-lib`](https://github.com/Hopding/pdf-lib) all aspects of the API are synchronous. So the PNG image embedding feature (which makes use of `png.js`) was forced to be asynchronous, and it stuck out like a sore thumb.
+<!-- Prettier Badge -->
+<a href="https://prettier.io/">
+  <img
+    src="https://img.shields.io/badge/code_style-prettier-ff69b4.svg?style=flat-square"
+    alt="Prettier Badge"
+  />
+</a>
 
-This fork preserves both the `decode` and `decodePixels` methods, but adds two new ones: `decodeSync` and `decodePixelsSync`. These methods work just like the original ones, except they behave in a synchronous fashion. This is made possible by using the [`pako`](https://github.com/nodeca/pako) library to decode PNG data instead of Node's `zlib` module.
+> A PNG decoder written in TypeScript
 
-## Example of `PNG.decodePixelsSync`
+This project is a fork of [`png.js`](https://github.com/devongovett/png.js) and was created for use in [`pdf-lib`](https://github.com/Hopding/pdf-lib). The original project is written in CoffeeScript. It contains a file for browser environments (`png.coffee`) and a different file for Node environments (`png-node.coffee`). This fork is a rewrite of the original project in TypeScript. All environment specific code has been removed or replaced with environment-independent code.
+
+## Example of `PNG.decodePixels`
 ```javascript
-const PNG = require('png-js');
-const pngImg = new PNG(/* Buffer object containing PNG image */);
-const pixels = pngImg.decodePixelsSync(); // pixels is a 1d array (in rgba order) of decoded pixel data
+// Import the PNG class
+import PNG from 'png-ts';
+
+// Create a PNG object
+const pngImage = PNG.load(/* Uint8Array containing bytes of PNG image */);
+
+// `pixels` is a 1D array (in rgba order) of decoded pixel data
+const pixels = pngImage.decodePixels();
 ```
 
-# png.js
-A PNG decoder in JS for the canvas element or Node.js.
+## Installation
+### NPM Module
+To install the latest stable version:
+```bash
+# With npm
+npm install --save png-ts
 
-## Browser Usage
-Simply include png.js and zlib.js on your HTML page, create a canvas element, and call PNG.load to load an image.
+# With yarn
+yarn add png-ts
+```
+This assumes you're using [npm](https://www.npmjs.com/) or [yarn](https://yarnpkg.com/lang/en/) as your package manager.
 
-    <canvas></canvas>
-    <script src="zlib.js"></script>
-    <script src="png.js"></script>
-    <script>
-        var canvas = document.getElementsByTagName('canvas')[0];
-        PNG.load('some.png', canvas);
-    </script>
+### UMD Module
+You can also download `png-ts` as a UMD module from [unpkg](https://unpkg.com/#/). The UMD builds have been compiled to ES5, so they should work [in any modern browser](https://caniuse.com/#feat=es5). UMD builds are useful if you aren't using a package manager or module bundler. For example, you can use them directly in the `<script>` tag of an HTML page.
 
-The source code for the browser version resides in `png.js` and also supports loading and displaying animated PNGs.
+The following builds are available:
 
-## Node.js Usage
-Install the module using npm
+* https://unpkg.com/png-ts/dist/png-ts.js
+* https://unpkg.com/png-ts/dist/png-ts.min.js
 
-    sudo npm install png-js
+When using a UMD build, you will have access to a global `window.PNG` variable. This variable contains the `PNG` class exported by `png-ts`. For example:
 
-Require the module and decode a PNG
+```javascript
+// NPM module
+import PNG from 'pdf-lib';
+const pngImage = PNG.load(/* ... */)
 
-    var PNG = require('png-js');
-    PNG.decode('some.png', function(pixels) {
-        // pixels is a 1d array (in rgba order) of decoded pixel data
-    });
+// UMD module
+var pngImage = window.PNG.load(/* ... */)
+```
 
-You can also call `PNG.load` if you want to load the PNG (but not decode the pixels) synchronously.  If you already
-have the PNG data in a buffer, simply use `new PNG(buffer)`.  In both of these cases, you need to call `png.decode`
-yourself which passes your callback the decoded pixels as a buffer.  If you already have a buffer you want the pixels
-copied to, call `copyToImageData` with your buffer and the decoded pixels as returned from `decodePixels`.
+## TODO
+- [ ] Document `PNG.decode()` and `PNG.copyImageDataToBuffer()` methods.
+- [ ] See how much `pako` inflates the bundle size, replace if necessary
+- [ ] Replace the switch statements with if-statements to improve readability
+- [ ] Add unit tests
+
+## Prior Art
+* [`png-js`](https://github.com/devongovett/png.js) is a (animated) PNG decoder written in JavaScript for the HTML5 canvas element and Node.js (http://devongovett.github.io/png.js/).
+
+## License
+[MIT](https://choosealicense.com/licenses/mit/)

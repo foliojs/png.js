@@ -1,6 +1,6 @@
 {
   "name": "png-ts",
-  "version": "0.0.1-rc4",
+  "version": "0.0.1-rc5",
   "description": "A PNG decoder written in TypeScript",
   "main": "lib/png.js",
   "unpkg": "dist/png-ts.min.js",
