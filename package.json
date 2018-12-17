@@ -1,16 +1,17 @@
 {
   "name": "png-ts",
-  "version": "0.1.1",
+  "version": "0.0.1-rc1",
   "description": "A PNG decoder written in TypeScript",
   "main": "lib/png.js",
   "unpkg": "dist/pdf-lib.min.js",
   "module": "es/index.js",
   "types": "lib/png.d.ts",
   "scripts": {
-    "build-lib": "tsc --module CommonJS --outDir lib",
-    "build-es": "tsc --module ES2015 --outDir es",
-    "build-umd": "rollup -c rollup.config.js -o dist/pdf-lib.js",
-    "build-umd-min": "UGLIFY=true rollup -c rollup.config.js -o dist/pdf-lib.min.js"
+    "make": "node Makefile.js",
+    "lint": "node Makefile.js lint",
+    "releaseNext": "node Makefile.js releaseNext",
+    "releaseLatest": "node Makefile.js releaseLatest",
+    "typecheck": "tsc --noEmit"
   },
   "repository": {
     "type": "git",
@@ -20,7 +21,7 @@
   "contributors": [
     "Devon Govett <devongovett@gmail.com> (http://badassjs.com/)"
   ],
-  "bugs": "https://github.com/Hopding/png.js/issues",
+  "bugs": "https://github.com/Hopding/png-ts/issues",
   "devDependencies": {
     "@types/pako": "^1.0.0",
     "prettier": "^1.15.3",
@@ -29,6 +30,7 @@
     "rollup-plugin-commonjs": "^9.2.0",
     "rollup-plugin-node-resolve": "^4.0.0",
     "rollup-plugin-uglify": "^6.0.0",
+    "shelljs": "^0.8.3",
     "tslint": "^5.11.0",
     "tslint-config-prettier": "^1.17.0",
     "typescript": "^3.2.2"

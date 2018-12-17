@@ -2,3 +2,5 @@ node_modules
 dist
 es
 lib
+*.zip
+yarn-error.log
