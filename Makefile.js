@@ -48,10 +48,15 @@ target.rollupUMDMin = () => {
   exec(`rollup -c rollup.config.js -o dist/png-ts.min.js`);
 };
 
+/* =============================== Release ================================== */
+
 target.releaseNext = () => {
   const version = `${packageJson.version}@next`;
   console.log('Releasing version', version);
-  execFileSync('yarn', ['publish', '--tag next'], { stdio: 'inherit' });
+
+  target.all();
+
+  execFileSync('yarn', ['publish', '--tag', 'next'], { stdio: 'inherit' });
 };
 
 // Extra confirmation to avoid accidental releases to @latest
@@ -79,13 +84,15 @@ target.releaseLatest = async () => {
   const version = `${packageJson.version}@latest`;
   console.log('Releasing version', version);
 
+  target.all();
+
   const enteredVersion = await promptForVerionToBeReleased(version);
   if (enteredVersion !== version) {
     console.error('Entered version does match. Aborting release.');
     return;
   }
 
-  execSync('yarn', ['publish', '--tag latest'], { stdio: 'inherit' });
+  execSync('yarn', ['publish', '--tag', 'latest'], { stdio: 'inherit' });
 
   const tagName = `v${packageJson.version}`;
   exec(`git commit -am 'Bump version to ${packageJson.version}'`);
