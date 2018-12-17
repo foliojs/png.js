@@ -2,12 +2,16 @@
 // * See how much 'pako' inflates the bundle size
 // * Replace the ugly switch statements with if-statements
 // * Add unit tests!
+// * Add private access modifiers to fields/methods
+// * Remove the _decodedPalette feature?
 
 import pako from 'pako';
 
 export type ColorSpace = 'DeviceGray' | 'DeviceRGB';
 
 export default class PNG {
+  static from = (data: Uint8Array) => new PNG(data);
+
   data: Uint8Array;
   pos: number;
   palette: number[];
@@ -30,14 +34,11 @@ export default class PNG {
   pixelBitlength: number;
   colorSpace: ColorSpace;
 
-  private _decodedPalette: Uint8Array | void;
-
   constructor(data: Uint8Array) {
     this.data = data;
     this.pos = 8; // Skip the default header;
 
     this.palette = [];
-    // this.imgData = [];
     const imgDataBuff = [];
     this.transparency = {};
     this.text = {};
@@ -151,7 +152,6 @@ export default class PNG {
         throw new Error('Incomplete or corrupt PNG file');
       }
     }
-    return;
   }
 
   read = (numBytes: number): number[] => {
@@ -303,22 +303,15 @@ export default class PNG {
 
   copyToImageData = (imageData: Uint8Array, pixels: Uint8Array): void => {
     let colors: 1 | 3 | 4 = this.colors;
-    let palette = null;
+    let palette;
     let alpha = this.hasAlphaChannel;
 
     if (this.palette.length) {
-      // palette =
-      // this._decodedPalette != null
-      // ? this._decodedPalette
-      // : (this._decodedPalette = this.decodePalette());
-      if (!this._decodedPalette) this._decodedPalette = this.decodePalette();
-      palette = this._decodedPalette;
-
+      palette = this.decodePalette();
       colors = 4;
       alpha = true;
     }
 
-    // const data = (imageData && imageData.data) || imageData;
     const data = imageData;
     const length = data.length;
     const input = palette || pixels;

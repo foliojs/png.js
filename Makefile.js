@@ -37,13 +37,11 @@ target.compileTS = () => {
 };
 
 target.rollupUMD = () => {
-  target.convertAbsoluteImportsToRelative();
   env.UGLIFY = false;
   exec(`rollup -c rollup.config.js -o dist/png-ts.js`);
 };
 
 target.rollupUMDMin = () => {
-  target.convertAbsoluteImportsToRelative();
   env.UGLIFY = true;
   exec(`rollup -c rollup.config.js -o dist/png-ts.min.js`);
 };
