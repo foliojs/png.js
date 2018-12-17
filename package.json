@@ -1,28 +1,28 @@
 {
-    "name": "png-js",
-    "description": "A PNG decoder in CoffeeScript",
-    "version": "0.1.1",
-    "author": {
-        "name": "Devon Govett",
-        "email": "devongovett@gmail.com",
-        "url": "http://badassjs.com/"
-    },
-    "repository": {
-        "type": "git",
-        "url": "https://github.com/devongovett/png.js.git"
-    },
-    "bugs": "http://github.com/devongovett/png.js/issues",
-    "devDependencies": {
-        "coffee-script": "1.4.0"
-    },
-    "scripts": {
-        "prepublish": "coffee -c png-node.coffee"
-    },
-    "main": "png-node.js",
-    "engine": [
-        "node >= v0.6.0"
-    ],
-    "dependencies": {
-        "pako": "^1.0.6"
-    }
+  "name": "png-ts",
+  "version": "0.1.1",
+  "description": "A PNG decoder in TypeScript",
+  "main": "png.js",
+  "scripts": {
+    "prepublish": "tsc -c png-node.coffee"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/devongovett/png.js.git"
+  },
+  "author": "Andrew Dillon <andrew.dillon.j@gmail.com>",
+  "contributors": [
+    "Devon Govett <devongovett@gmail.com> (http://badassjs.com/)"
+  ],
+  "bugs": "https://github.com/Hopding/png.js/issues",
+  "devDependencies": {
+    "@types/pako": "^1.0.0",
+    "prettier": "^1.15.3",
+    "tslint": "^5.11.0",
+    "tslint-config-prettier": "^1.17.0",
+    "typescript": "^3.2.2"
+  },
+  "dependencies": {
+    "pako": "^1.0.6"
+  }
 }
