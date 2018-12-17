@@ -1,3 +1,4 @@
 node_modules
-*.d.ts
-*.js
+dist
+es
+lib

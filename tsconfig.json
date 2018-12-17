@@ -14,5 +14,5 @@
       "*": ["node_modules/*"]
     }
   },
-  "include": ["png.ts"]
+  "include": ["src/**/*.ts"]
 }

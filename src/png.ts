@@ -7,7 +7,7 @@ import pako from 'pako';
 
 export type ColorSpace = 'DeviceGray' | 'DeviceRGB';
 
-export class PNG {
+export default class PNG {
   data: Uint8Array;
   pos: number;
   palette: number[];
