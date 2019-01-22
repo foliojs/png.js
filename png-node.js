@@ -46,9 +46,16 @@
       return new PNG(file);
     };
 
-    function PNG(data) {
+    function PNG(buffer) {
+      // Check if the buffer contains PNG's magic number
+      // that way, it does not get stuck on a loop and also
+      // saves time.
+      if (buffer[0] != 0x89 && buffer[1] != 0x50 && buffer[2] != 0x4e && buffer[3] != 0x47 
+       && buffer[4] != 0x0d && buffer[5] != 0x0a && buffer[6] != 0x1a && buffer[7] != 0x0a) {
+        throw new Error("Incomplete or corrupt PNG file");
+      }
       var chunkSize, colors, i, index, key, section, short, text, _i, _j, _ref;
-      this.data = data;
+      this.data = buffer;
       this.pos = 8;
       this.palette = [];
       this.imgData = [];
