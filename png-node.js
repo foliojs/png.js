@@ -1,14 +1,4 @@
 /*
- * decaffeinate suggestions:
- * DS101: Remove unnecessary use of Array.from
- * DS102: Remove unnecessary code created because of implicit returns
- * DS104: Avoid inline assignments
- * DS202: Simplify dynamic range loops
- * DS205: Consider reworking code to avoid use of IIFEs
- * DS207: Consider shorter variations of null checks
- * Full docs: https://github.com/decaffeinate/decaffeinate/blob/master/docs/suggestions.md
- */
-/*
  * MIT LICENSE
  * Copyright (c) 2011 Devon Govett
  * 
@@ -28,11 +18,11 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-let PNG;
+
 const fs = require('fs');
 const zlib = require('zlib');
 
-module.exports = (PNG = class PNG {
+module.exports = class PNG {
     static decode(path, fn) {
        return fs.readFile(path, function(err, file) {
            const png = new PNG(file);
@@ -56,15 +46,11 @@ module.exports = (PNG = class PNG {
         this.text = {};
 
         while (true) {
-            var end;
             const chunkSize = this.readUInt32();
-            const section = ((() => {
-                const result = [];
-                for (i = 0; i < 4; i++) {
-                    result.push(String.fromCharCode(this.data[this.pos++]));
-                }
-                return result;
-            })()).join('');
+            let section = '';            
+            for (i = 0; i < 4; i++) {
+                section += String.fromCharCode(this.data[this.pos++]);
+            }                
 
             switch (section) {
                 case 'IHDR':
@@ -83,7 +69,7 @@ module.exports = (PNG = class PNG {
                     break;
 
                 case 'IDAT':
-                    for (i = 0, end = chunkSize; i < end; i++) {
+                    for (i = 0; i < chunkSize; i++) {
                         this.imgData.push(this.data[this.pos++]);
                     }
                     break;
@@ -101,8 +87,7 @@ module.exports = (PNG = class PNG {
                             this.transparency.indexed = this.read(chunkSize);
                             var short = 255 - this.transparency.indexed.length;
                             if (short > 0) {
-                                var asc, end1;
-                                for (i = 0, end1 = short, asc = 0 <= end1; asc ? i < end1 : i > end1; asc ? i++ : i--) { this.transparency.indexed.push(255); }
+                                for (i = 0; i < short; i++) { this.transparency.indexed.push(255); }
                             }
                             break;
                         case 0:
@@ -120,25 +105,33 @@ module.exports = (PNG = class PNG {
                 case 'tEXt':
                     var text = this.read(chunkSize);                    
                     var index = text.indexOf(0);
-                    var key = String.fromCharCode(...Array.from(text.slice(0, index) || []));
-                    this.text[key] = String.fromCharCode(...Array.from(text.slice(index + 1) || []));
+                    var key = String.fromCharCode.apply(String, text.slice(0, index));
+                    this.text[key] = String.fromCharCode.apply(String, text.slice(index + 1));
                     break;
 
                 case 'IEND':
                     // we've got everything we need!
-                    this.colors = (() => { switch (this.colorType) {
-                        case 0: case 3: case 4: return 1;
-                        case 2: case 6: return 3;
-                    } })();
+                    switch (this.colorType) {
+                        case 0: case 3: case 4: 
+                          this.colors = 1;
+                          break;
+                        case 2: case 6: 
+                          this.colors = 3;
+                          break;
+                    }
 
                     this.hasAlphaChannel = [4, 6].includes(this.colorType);
                     var colors = this.colors + (this.hasAlphaChannel ? 1 : 0);    
                     this.pixelBitlength = this.bits * colors;
 
-                    this.colorSpace = (() => { switch (this.colors) {
-                        case 1: return 'DeviceGray';
-                        case 3: return 'DeviceRGB';
-                    } })();
+                    switch (this.colors) {
+                        case 1: 
+                          this.colorSpace = 'DeviceGray';
+                          break;
+                        case 3: 
+                          this.colorSpace = 'DeviceRGB';
+                          break;
+                    }
 
                     this.imgData = new Buffer(this.imgData);
                     return;
@@ -159,7 +152,11 @@ module.exports = (PNG = class PNG {
     }
         
     read(bytes) {
-        return (__range__(0, bytes, false).map((i) => this.data[this.pos++]));
+        const result = new Array(bytes);
+        for (let i = 0; i < bytes; i++) {
+          result[i] = this.data[this.pos++];
+        }
+        return result;
     }
     
     readUInt32() {
@@ -191,20 +188,15 @@ module.exports = (PNG = class PNG {
 
             while (pos < length) {
                 var byte, col, i, left, upper;
-                var end;
-                var end1;
-                var end2;
-                var end3;
-                var end4;
                 switch (data[pos++]) {
                     case 0: // None
-                        for (i = 0, end = scanlineLength; i < end; i++) {
+                        for (i = 0; i < scanlineLength; i++) {
                             pixels[c++] = data[pos++];
                         }
                         break;
 
                     case 1: // Sub
-                        for (i = 0, end1 = scanlineLength; i < end1; i++) {
+                        for (i = 0; i < scanlineLength; i++) {
                             byte = data[pos++];
                             left = i < pixelBytes ? 0 : pixels[c - pixelBytes];
                             pixels[c++] = (byte + left) % 256;
@@ -212,7 +204,7 @@ module.exports = (PNG = class PNG {
                         break;
 
                     case 2: // Up
-                        for (i = 0, end2 = scanlineLength; i < end2; i++) {
+                        for (i = 0; i < scanlineLength; i++) {
                             byte = data[pos++];
                             col = (i - (i % pixelBytes)) / pixelBytes;
                             upper = row && pixels[((row - 1) * scanlineLength) + (col * pixelBytes) + (i % pixelBytes)];
@@ -221,7 +213,7 @@ module.exports = (PNG = class PNG {
                         break;
 
                     case 3: // Average
-                        for (i = 0, end3 = scanlineLength; i < end3; i++) {
+                        for (i = 0; i < scanlineLength; i++) {
                             byte = data[pos++];
                             col = (i - (i % pixelBytes)) / pixelBytes;
                             left = i < pixelBytes ? 0 : pixels[c - pixelBytes];
@@ -231,7 +223,7 @@ module.exports = (PNG = class PNG {
                         break;
 
                     case 4: // Paeth
-                        for (i = 0, end4 = scanlineLength; i < end4; i++) {
+                        for (i = 0; i < scanlineLength; i++) {
                             var paeth, upperLeft;
                             byte = data[pos++];
                             col = (i - (i % pixelBytes)) / pixelBytes;
@@ -274,13 +266,13 @@ module.exports = (PNG = class PNG {
         
     decodePalette() {
         const { palette } = this;
-        const transparency = this.transparency.indexed || [];
-        const ret = new Buffer(transparency.length + palette.length);
-        let pos = 0;
         const { length } = palette;
+        const transparency = this.transparency.indexed || [];
+        const ret = new Buffer(transparency.length + length);
+        let pos = 0;        
         let c = 0;
         
-        for (let i = 0, end = palette.length; i < end; i += 3) {
+        for (let i = 0; i < length; i += 3) {
             var left;
             ret[pos++] = palette[i];
             ret[pos++] = palette[i + 1];
@@ -298,12 +290,12 @@ module.exports = (PNG = class PNG {
         let alpha = this.hasAlphaChannel;
         
         if (this.palette.length) {
-            palette = this._decodedPalette != null ? this._decodedPalette : (this._decodedPalette = this.decodePalette());
+            palette = this._decodedPalette || (this._decodedPalette = this.decodePalette());
             colors = 4;
             alpha = true;
         }
         
-        const data = (imageData != null ? imageData.data : undefined) || imageData;
+        const data = imageData.data || imageData;
         const { length } = data;
         const input = palette || pixels;
         let i = (j = 0);
@@ -338,13 +330,4 @@ module.exports = (PNG = class PNG {
             return fn(ret);
         });
     }
-});
-function __range__(left, right, inclusive) {
-  let range = [];
-  let ascending = left < right;
-  let end = !inclusive ? right : ascending ? right + 1 : right - 1;
-  for (let i = left; ascending ? i < end : i > end; ascending ? i++ : i--) {
-    range.push(i);
-  }
-  return range;
-}
+};

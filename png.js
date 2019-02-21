@@ -1,15 +1,4 @@
 /*
- * decaffeinate suggestions:
- * DS101: Remove unnecessary use of Array.from
- * DS102: Remove unnecessary code created because of implicit returns
- * DS104: Avoid inline assignments
- * DS202: Simplify dynamic range loops
- * DS205: Consider reworking code to avoid use of IIFEs
- * DS206: Consider reworking classes to avoid initClass
- * DS207: Consider shorter variations of null checks
- * Full docs: https://github.com/decaffeinate/decaffeinate/blob/master/docs/suggestions.md
- */
-/*
  * MIT LICENSE
  * Copyright (c) 2011 Devon Govett
  * 
@@ -29,37 +18,26 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-var PNG = (function() {
-  let APNG_DISPOSE_OP_NONE = undefined;
-  let APNG_DISPOSE_OP_BACKGROUND = undefined;
-  let APNG_DISPOSE_OP_PREVIOUS = undefined;
-  let APNG_BLEND_OP_SOURCE = undefined;
-  let APNG_BLEND_OP_OVER = undefined;
-  let scratchCanvas = undefined;
-  let scratchCtx = undefined;
-  let makeImage = undefined;
-  PNG = class PNG {
-      static initClass() {
-          
-          APNG_DISPOSE_OP_NONE = 0;
-          APNG_DISPOSE_OP_BACKGROUND = 1;
-          APNG_DISPOSE_OP_PREVIOUS = 2;
-          APNG_BLEND_OP_SOURCE = 0;
-          APNG_BLEND_OP_OVER = 1;
-          
-          scratchCanvas = document.createElement('canvas');
-          scratchCtx = scratchCanvas.getContext('2d');
-          makeImage = function(imageData) {
-              scratchCtx.width = imageData.width;
-              scratchCtx.height = imageData.height;
-              scratchCtx.clearRect(0, 0, imageData.width, imageData.height);
-              scratchCtx.putImageData(imageData, 0, 0);
-              
-              const img = new Image;
-              img.src = scratchCanvas.toDataURL();
-              return img;
-          };
-      }
+window.PNG = (function() {
+  let APNG_DISPOSE_OP_NONE = 0;
+  let APNG_DISPOSE_OP_BACKGROUND = 1;
+  let APNG_DISPOSE_OP_PREVIOUS = 2;
+  let APNG_BLEND_OP_SOURCE = 0;
+  let APNG_BLEND_OP_OVER = 1;
+  let scratchCanvas = document.createElement('canvas');
+  let scratchCtx = scratchCanvas.getContext('2d');
+  let makeImage = function(imageData) {
+    scratchCtx.width = imageData.width;
+    scratchCtx.height = imageData.height;
+    scratchCtx.clearRect(0, 0, imageData.width, imageData.height);
+    scratchCtx.putImageData(imageData, 0, 0);
+    
+    const img = new Image;
+    img.src = scratchCanvas.toDataURL();
+    return img;
+  };
+
+  class PNG {
       static load(url, canvas, callback) {
           if (typeof canvas === 'function') { callback = canvas; }
   
@@ -69,7 +47,7 @@ var PNG = (function() {
           xhr.onload = () => {
               const data = new Uint8Array(xhr.response || xhr.mozResponseArrayBuffer);
               const png = new PNG(data);
-              if (typeof (canvas != null ? canvas.getContext : undefined) === 'function') { png.render(canvas); }
+              if (typeof (canvas && canvas.getContext) === 'function') { png.render(canvas); }
               return (typeof callback === 'function' ? callback(png) : undefined);
           };
           
@@ -90,15 +68,11 @@ var PNG = (function() {
       
           while (true) {
               var data;
-              var asc, end;
               let chunkSize = this.readUInt32();
-              const section = ((() => {
-                  const result = [];
-                  for (i = 0; i < 4; i++) {
-                      result.push(String.fromCharCode(this.data[this.pos++]));
-                  }
-                  return result;
-              })()).join('');
+              let section = '';            
+              for (i = 0; i < 4; i++) {
+                  section += String.fromCharCode(this.data[this.pos++]);
+              }  
           
               switch (section) {
                   case 'IHDR':
@@ -151,8 +125,8 @@ var PNG = (function() {
                           chunkSize -= 4;
                       }
                   
-                      data = (frame != null ? frame.data : undefined) || this.imgData;
-                      for (i = 0, end = chunkSize, asc = 0 <= end; asc ? i < end : i > end; asc ? i++ : i--) {
+                      data = (frame && frame.data) || this.imgData;
+                      for (i = 0; i < chunkSize; i++) {
                           data.push(this.data[this.pos++]);
                       }
                       break;
@@ -170,8 +144,7 @@ var PNG = (function() {
                               this.transparency.indexed = this.read(chunkSize);
                               var short = 255 - this.transparency.indexed.length;
                               if (short > 0) {
-                                  var asc1, end1;
-                                  for (i = 0, end1 = short, asc1 = 0 <= end1; asc1 ? i < end1 : i > end1; asc1 ? i++ : i--) { this.transparency.indexed.push(255); }
+                                for (i = 0; i < short; i++) { this.transparency.indexed.push(255); }
                               }
                               break;
                           case 0:
@@ -189,27 +162,35 @@ var PNG = (function() {
                   case 'tEXt':
                       var text = this.read(chunkSize);                    
                       var index = text.indexOf(0);
-                      var key = String.fromCharCode(...Array.from(text.slice(0, index) || []));
-                      this.text[key] = String.fromCharCode(...Array.from(text.slice(index + 1) || []));
+                      var key = String.fromCharCode.apply(String, text.slice(0, index));
+                      this.text[key] = String.fromCharCode.apply(String, text.slice(index + 1));
                       break;
                           
                   case 'IEND':
                       if (frame) { this.animation.frames.push(frame); }
               
                       // we've got everything we need!
-                      this.colors = (() => { switch (this.colorType) {
-                          case 0: case 3: case 4: return 1;
-                          case 2: case 6: return 3;
-                      } })();
+                      switch (this.colorType) {
+                        case 0: case 3: case 4: 
+                          this.colors = 1;
+                          break;
+                        case 2: case 6: 
+                          this.colors = 3;
+                          break;
+                      }
                   
                       this.hasAlphaChannel = [4, 6].includes(this.colorType);
                       var colors = this.colors + (this.hasAlphaChannel ? 1 : 0);    
                       this.pixelBitlength = this.bits * colors;
                       
-                      this.colorSpace = (() => { switch (this.colors) {
-                          case 1: return 'DeviceGray';
-                          case 3: return 'DeviceRGB';
-                      } })();
+                      switch (this.colors) {
+                        case 1: 
+                          this.colorSpace = 'DeviceGray';
+                          break;
+                        case 3: 
+                          this.colorSpace = 'DeviceRGB';
+                          break;
+                      }
                   
                       this.imgData = new Uint8Array(this.imgData);                        
                       return;
@@ -230,7 +211,11 @@ var PNG = (function() {
       }
       
       read(bytes) {
-          return (__range__(0, bytes, false).map((i) => this.data[this.pos++]));
+        const result = new Array(bytes);
+        for (let i = 0; i < bytes; i++) {
+          result[i] = this.data[this.pos++];
+        }
+        return result;
       }
   
       readUInt32() {
@@ -264,20 +249,15 @@ var PNG = (function() {
       
           while (pos < length) {
               var byte, col, i, left, upper;
-              var end;
-              var end1;
-              var end2;
-              var end3;
-              var end4;
               switch (data[pos++]) {
                   case 0: // None
-                      for (i = 0, end = scanlineLength; i < end; i++) {
+                      for (i = 0; i < scanlineLength; i++) {
                           pixels[c++] = data[pos++];
                       }
                       break;
 
                   case 1: // Sub
-                      for (i = 0, end1 = scanlineLength; i < end1; i++) {
+                      for (i = 0; i < scanlineLength; i++) {
                           byte = data[pos++];
                           left = i < pixelBytes ? 0 : pixels[c - pixelBytes];
                           pixels[c++] = (byte + left) % 256;
@@ -285,7 +265,7 @@ var PNG = (function() {
                       break;
 
                   case 2: // Up
-                      for (i = 0, end2 = scanlineLength; i < end2; i++) {
+                      for (i = 0; i < scanlineLength; i++) {
                           byte = data[pos++];
                           col = (i - (i % pixelBytes)) / pixelBytes;
                           upper = row && pixels[((row - 1) * scanlineLength) + (col * pixelBytes) + (i % pixelBytes)];
@@ -294,7 +274,7 @@ var PNG = (function() {
                       break;
 
                   case 3: // Average
-                      for (i = 0, end3 = scanlineLength; i < end3; i++) {
+                      for (i = 0; i < scanlineLength; i++) {
                           byte = data[pos++];
                           col = (i - (i % pixelBytes)) / pixelBytes;
                           left = i < pixelBytes ? 0 : pixels[c - pixelBytes];
@@ -304,7 +284,7 @@ var PNG = (function() {
                       break;
 
                   case 4: // Paeth
-                      for (i = 0, end4 = scanlineLength; i < end4; i++) {
+                      for (i = 0; i < scanlineLength; i++) {
                           var paeth, upperLeft;
                           byte = data[pos++];
                           col = (i - (i % pixelBytes)) / pixelBytes;
@@ -346,13 +326,13 @@ var PNG = (function() {
       
       decodePalette() {
           const { palette } = this;
-          const transparency = this.transparency.indexed || [];
-          const ret = new Uint8Array((transparency.length || 0) + palette.length);
-          let pos = 0;
           const { length } = palette;
+          const transparency = this.transparency.indexed || [];
+          const ret = new Uint8Array((transparency.length || 0) + length);
+          let pos = 0;          
           let c = 0;
       
-          for (let i = 0, end = palette.length; i < end; i += 3) {
+          for (let i = 0; i < length; i += 3) {
               var left;
               ret[pos++] = palette[i];
               ret[pos++] = palette[i + 1];
@@ -370,7 +350,7 @@ var PNG = (function() {
           let alpha = this.hasAlphaChannel;
       
           if (this.palette.length) {
-              palette = this._decodedPalette != null ? this._decodedPalette : (this._decodedPalette = this.decodePalette());
+              palette = this._decodedPalette || (this._decodedPalette = this.decodePalette());
               colors = 4;
               alpha = true;
           }
@@ -411,20 +391,16 @@ var PNG = (function() {
       
       decodeFrames(ctx) {
           if (!this.animation) { return; }
-      
-          return (() => {
-              const result = [];
-              for (let i = 0; i < this.animation.frames.length; i++) {
-                  const frame = this.animation.frames[i];
-                  const imageData = ctx.createImageData(frame.width, frame.height);
-                  const pixels = this.decodePixels(new Uint8Array(frame.data));
-          
-                  this.copyToImageData(imageData, pixels);
-                  frame.imageData = imageData;
-                  result.push(frame.image = makeImage(imageData));
-              }
-              return result;
-          })();
+
+          for (let i = 0; i < this.animation.frames.length; i++) {
+            const frame = this.animation.frames[i];
+            const imageData = ctx.createImageData(frame.width, frame.height);
+            const pixels = this.decodePixels(new Uint8Array(frame.data));
+    
+            this.copyToImageData(imageData, pixels);
+            frame.imageData = imageData;
+            frame.image = makeImage(imageData);
+          }
       }
       
       renderFrame(ctx, number) {
@@ -438,10 +414,10 @@ var PNG = (function() {
           }
       
           // check the previous frame's dispose operation
-          if ((prev != null ? prev.disposeOp : undefined) === APNG_DISPOSE_OP_BACKGROUND) {
+          if ((prev && prev.disposeOp) === APNG_DISPOSE_OP_BACKGROUND) {
               ctx.clearRect(prev.xOffset, prev.yOffset, prev.width, prev.height);
           
-          } else if ((prev != null ? prev.disposeOp : undefined) === APNG_DISPOSE_OP_PREVIOUS) {
+          } else if ((prev && prev.disposeOp) === APNG_DISPOSE_OP_PREVIOUS) {
               ctx.putImageData(prev.imageData, prev.xOffset, prev.yOffset);
           }
       
@@ -455,23 +431,25 @@ var PNG = (function() {
       }
       
       animate(ctx) {
-          let doFrame;
+          
           let frameNumber = 0;
           const {numFrames, frames, numPlays} = this.animation;
       
-          return (doFrame = () => {
+          const doFrame = () => {
               const f = frameNumber++ % numFrames;
               const frame = frames[f];
               this.renderFrame(ctx, f);
           
               if ((numFrames > 1) && ((frameNumber / numFrames) < numPlays)) {
-                  return this.animation._timeout = setTimeout(doFrame, frame.delay);
+                  this.animation._timeout = setTimeout(doFrame, frame.delay);
               }
-          })();
+          };
+
+          doFrame()
       }
               
       stopAnimation() {
-          return clearTimeout(this.animation != null ? this.animation._timeout : undefined);
+          return clearTimeout(this.animation && this.animation._timeout);
       }
   
       render(canvas) {
@@ -496,18 +474,6 @@ var PNG = (function() {
               return ctx.putImageData(data, 0, 0);
           }
       }
-  };
-  PNG.initClass();
+  };  
   return PNG;
 })();
-
-window.PNG = PNG;
-function __range__(left, right, inclusive) {
-let range = [];
-let ascending = left < right;
-let end = !inclusive ? right : ascending ? right + 1 : right - 1;
-for (let i = left; ascending ? i < end : i > end; ascending ? i++ : i--) {
-  range.push(i);
-}
-return range;
-}
