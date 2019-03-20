@@ -154,9 +154,6 @@ class PNG
                     
             @pos += 4 # Skip the CRC
             
-            if @pos > @data.length
-                throw new Error "Incomplete or corrupt PNG file"
-            
         return
         
     read: (bytes) ->
@@ -274,7 +271,7 @@ class PNG
             colors = 4
             alpha = true
         
-        data = imageData.data or imageData
+        data = imageData.data
         length = data.length
         input = palette or pixels
         i = j = 0
