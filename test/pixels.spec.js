@@ -1,17 +1,7 @@
 const PNGNode = require('../png-node');
 const fs = require('fs');
 
-// the below files fails with "Invalid filter algorithm" error
-const notImplemented = [
-  'interlaced-rgb-8bit.png',
-  'interlaced-rgb-16bit.png',
-  'interlaced-pallete-8bit.png',
-  'interlaced-grayscale-8bit.png'
-];
-
-const files = fs
-  .readdirSync('test/images')
-  .filter(fileName => !notImplemented.includes(fileName));
+const files = fs.readdirSync('test/images');
 
 async function getPixels(Ctor, fileName) {
   const image = new Ctor(fs.readFileSync(`test/images/${fileName}`));
