@@ -21,17 +21,25 @@
 const fs = require('fs');
 const zlib = require('zlib');
 
-module.exports = class PNG {
+class PNG {
   static decode(path, fn) {
-    return fs.readFile(path, function(err, file) {
-      const png = new PNG(file);
-      return png.decode(pixels => fn(pixels));
-    });
+    if (BROWSER) {
+      throw new Error('PNG.decode not available in browser build');
+    } else {
+      return fs.readFile(path, function(err, file) {
+        const png = new PNG(file);
+        return png.decode(pixels => fn(pixels));
+      });
+    }
   }
 
   static load(path) {
-    const file = fs.readFileSync(path);
-    return new PNG(file);
+    if (BROWSER) {
+      throw new Error('PNG.load not available in browser build');
+    } else {
+      const file = fs.readFileSync(path);
+      return new PNG(file);
+    }
   }
 
   constructor(data) {
@@ -400,3 +408,5 @@ module.exports = class PNG {
     });
   }
 };
+
+export default PNG;
