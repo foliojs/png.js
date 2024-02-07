@@ -21,6 +21,12 @@
         "email": "devongovett@gmail.com",
         "url": "http://badassjs.com/"
     },
+    "files": [
+        "lib",
+        "png.js",
+        "LICENSE",
+        "README.md"
+    ],
     "repository": {
         "type": "git",
         "url": "https://github.com/devongovett/png.js.git"
