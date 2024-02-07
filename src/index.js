@@ -1,5 +1,5 @@
-const fs = require('fs');
-const zlib = require('zlib');
+import fs from 'fs';
+import zlib from 'zlib';
 
 class PNG {
   static decode(path, fn) {
@@ -387,6 +387,6 @@ class PNG {
       return fn(ret);
     });
   }
-};
+}
 
 export default PNG;
