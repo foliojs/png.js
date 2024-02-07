@@ -2,7 +2,6 @@ import replace from '@rollup/plugin-replace';
 import ignore from 'rollup-plugin-ignore';
 import alias from '@rollup/plugin-alias';
 import nodeResolve from '@rollup/plugin-node-resolve';
-import commonjs from '@rollup/plugin-commonjs';
 
 import pkg from './package.json' assert { type: 'json' };
 
@@ -21,9 +20,6 @@ const getESM = (override) => Object.assign({}, esm, override);
 
 const input = 'src/index.js';
 
-// ...Object.keys(pkg.dependencies).filter(
-        //   (dep) => dep !== 'browserify-zlib',
-        // ),
 
 const getExternal = ({ browser }) =>
   browser
@@ -37,11 +33,7 @@ const getPlugins = ({ browser }) => [
         alias({
           entries: [{ find: 'zlib', replacement: 'browserify-zlib' }],
         }),
-        commonjs(),
         nodeResolve({ browser, preferBuiltins: !browser }),
-        // nodePolyfills({
-        //   include: [/node_modules\/.+\.js/, /\/png-js\/src\/.*\.js/],
-        // }),
       ]
     : []),
   replace({
