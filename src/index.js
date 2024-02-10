@@ -1,37 +1,25 @@
-/*
- * MIT LICENSE
- * Copyright (c) 2011 Devon Govett
- *
- * Permission is hereby granted, free of charge, to any person obtaining a copy of this
- * software and associated documentation files (the "Software"), to deal in the Software
- * without restriction, including without limitation the rights to use, copy, modify, merge,
- * publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons
- * to whom the Software is furnished to do so, subject to the following conditions:
- *
- * The above copyright notice and this permission notice shall be included in all copies or
- * substantial portions of the Software.
- *
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING
- * BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
- * NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM,
- * DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
- * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
- */
+import fs from 'fs';
+import zlib from 'zlib';
 
-const fs = require('fs');
-const zlib = require('zlib');
-
-module.exports = class PNG {
+class PNG {
   static decode(path, fn) {
-    return fs.readFile(path, function(err, file) {
-      const png = new PNG(file);
-      return png.decode(pixels => fn(pixels));
-    });
+    if (BROWSER) {
+      throw new Error('PNG.decode not available in browser build');
+    } else {
+      return fs.readFile(path, function(err, file) {
+        const png = new PNG(file);
+        return png.decode(pixels => fn(pixels));
+      });
+    }
   }
 
   static load(path) {
-    const file = fs.readFileSync(path);
-    return new PNG(file);
+    if (BROWSER) {
+      throw new Error('PNG.load not available in browser build');
+    } else {
+      const file = fs.readFileSync(path);
+      return new PNG(file);
+    }
   }
 
   constructor(data) {
@@ -140,7 +128,7 @@ module.exports = class PNG {
               break;
           }
 
-          this.imgData = new Buffer(this.imgData);
+          this.imgData = Buffer.from(this.imgData);
           return;
           break;
 
@@ -188,7 +176,7 @@ module.exports = class PNG {
       const { width, height } = this;
       const pixelBytes = this.pixelBitlength / 8;
 
-      const pixels = new Buffer(width * height * pixelBytes);
+      const pixels = Buffer.alloc(width * height * pixelBytes);
       const { length } = data;
       let pos = 0;
 
@@ -196,7 +184,7 @@ module.exports = class PNG {
         const w = Math.ceil((width - x0) / dx);
         const h = Math.ceil((height - y0) / dy);
         const scanlineLength = pixelBytes * w;
-        const buffer = singlePass ? pixels : new Buffer(scanlineLength * h);
+        const buffer = singlePass ? pixels : Buffer.alloc(scanlineLength * h);
         let row = 0;
         let c = 0;
         while (row < h && pos < length) {
@@ -337,7 +325,7 @@ module.exports = class PNG {
     const { palette } = this;
     const { length } = palette;
     const transparency = this.transparency.indexed || [];
-    const ret = new Buffer(transparency.length + length);
+    const ret = Buffer.alloc(transparency.length + length);
     let pos = 0;
     let c = 0;
 
@@ -393,10 +381,12 @@ module.exports = class PNG {
   }
 
   decode(fn) {
-    const ret = new Buffer(this.width * this.height * 4);
+    const ret = Buffer.alloc(this.width * this.height * 4);
     return this.decodePixels(pixels => {
       this.copyToImageData(ret, pixels);
       return fn(ret);
     });
   }
-};
+}
+
+export default PNG;
