@@ -179,36 +179,42 @@ module.exports = class PNG {
     return b1 | b2;
   }
 
+
+  
   decodePixels(fn) {
+    // Inflate compression
     return zlib.inflate(this.imgData, (err, data) => {
       if (err) {
         throw err;
       }
 
       const { width, height } = this;
-      const pixelBytes = this.pixelBitlength / 8;
+      const actualPixelBytes= this.pixelBitlength / 8;
+      let pixelBytes = Math.max(actualPixelBytes, 1);
 
-      const pixels = new Buffer(width * height * pixelBytes);
+      let unfilteredPixelData = new Buffer(Math.ceil(width * actualPixelBytes) * height)
       const { length } = data;
       let pos = 0;
 
       function pass(x0, y0, dx, dy, singlePass = false) {
         const w = Math.ceil((width - x0) / dx);
         const h = Math.ceil((height - y0) / dy);
-        const scanlineLength = pixelBytes * w;
-        const buffer = singlePass ? pixels : new Buffer(scanlineLength * h);
+        const scanlineLength = Math.ceil(actualPixelBytes * w);
+        const buffer = singlePass ? unfilteredPixelData : new Buffer(scanlineLength * h);
         let row = 0;
         let c = 0;
+        // Loop over scanlines
         while (row < h && pos < length) {
           var byte, col, i, left, upper;
+          // Switch different filtering methods
           switch (data[pos++]) {
-            case 0: // None
+            case 0: // No filter, copy bytes
               for (i = 0; i < scanlineLength; i++) {
                 buffer[c++] = data[pos++];
               }
               break;
 
-            case 1: // Sub
+            case 1: // Sub filter
               for (i = 0; i < scanlineLength; i++) {
                 byte = data[pos++];
                 left = i < pixelBytes ? 0 : buffer[c - pixelBytes];
@@ -298,7 +304,7 @@ module.exports = class PNG {
             let bufferPos = row * scanlineLength;
             for (i = 0; i < w; i++) {
               for (let j = 0; j < pixelBytes; j++)
-                pixels[pixelsPos++] = buffer[bufferPos++];
+                unfilteredPixelData[pixelsPos++] = buffer[bufferPos++];
               pixelsPos += (dx - 1) * pixelBytes;
             }
           }
@@ -327,6 +333,34 @@ module.exports = class PNG {
         pass(0, 1, 1, 2); // 7
       } else {
         pass(0, 0, 1, 1, true);
+      }
+
+
+
+      // If pixels are less than 8 bit
+      let pixels
+      if (this.pixelBitlength < 8) {
+        const pixelData = new Buffer(width * height);
+        let i = 0;
+
+        // const dataLineLength = width * pixelBytes + 1
+        for (let bi = 0; bi < unfilteredPixelData.length; bi++) {
+          const byte = unfilteredPixelData[bi]
+          const pixelsPerByte = 8 / this.pixelBitlength
+
+          const startPixel = i % width
+          for (let pi = 0; pi < pixelsPerByte && startPixel + pi < width ; pi++) { // Limit split bytes to line length
+            const shifted = byte >>> (this.pixelBitlength * (pixelsPerByte - pi - 1))
+            const mask = (1 << this.pixelBitlength) - 1
+            const pixelValue = shifted & mask
+            pixelData[i++] = pixelValue
+          }
+        }
+
+        // pixelBytes = 1
+        pixels = pixelData
+      } else {
+        pixels = unfilteredPixelData
       }
 
       return fn(pixels);
