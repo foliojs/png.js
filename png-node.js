@@ -43,6 +43,8 @@ module.exports = class PNG {
     this.imgData = [];
     this.transparency = {};
     this.text = {};
+    const _idatChunks = [];
+    let _idatTotalBytes = 0;
 
     while (true) {
       const chunkSize = this.readUInt32();
@@ -68,9 +70,9 @@ module.exports = class PNG {
           break;
 
         case 'IDAT':
-          for (i = 0; i < chunkSize; i++) {
-            this.imgData.push(this.data[this.pos++]);
-          }
+          _idatChunks.push(Buffer.from(this.data.slice(this.pos, this.pos + chunkSize)));
+          _idatTotalBytes += chunkSize;
+          this.pos += chunkSize;
           break;
 
         case 'tRNS':
@@ -140,7 +142,7 @@ module.exports = class PNG {
               break;
           }
 
-          this.imgData = new Buffer(this.imgData);
+          this.imgData = Buffer.concat(_idatChunks, _idatTotalBytes);
           return;
           break;
 
