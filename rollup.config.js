@@ -6,7 +6,7 @@ import nodeResolve from '@rollup/plugin-node-resolve';
 import pkg from './package.json' assert { type: 'json' };
 
 const cjs = {
-  exports: 'named',
+  exports: 'default',
   format: 'cjs',
   interop: 'compat',
 };
