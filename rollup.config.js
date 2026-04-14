@@ -1,9 +1,7 @@
 import replace from '@rollup/plugin-replace';
 import ignore from 'rollup-plugin-ignore';
-import alias from '@rollup/plugin-alias';
-import nodeResolve from '@rollup/plugin-node-resolve';
 
-import pkg from './package.json' assert { type: 'json' };
+import pkg from './package.json' with { type: 'json' };
 
 const cjs = {
   exports: 'default',
@@ -20,22 +18,11 @@ const getESM = (override) => Object.assign({}, esm, override);
 
 const input = 'src/index.js';
 
-
 const getExternal = ({ browser }) =>
-  browser
-    ? Object.keys(pkg.dependencies)
-    : ['fs', ...Object.keys(pkg.dependencies)];
+  browser ? [...Object.keys(pkg.dependencies), 'zlib'] : ['fs', 'zlib'];
 
 const getPlugins = ({ browser }) => [
-  ...(browser
-    ? [
-        ignore(['fs']),
-        alias({
-          entries: [{ find: 'zlib', replacement: 'browserify-zlib' }],
-        }),
-        nodeResolve({ browser, preferBuiltins: !browser }),
-      ]
-    : []),
+  ...(browser ? [ignore(['fs'])] : []),
   replace({
     preventAssignment: true,
     values: {
@@ -43,6 +30,10 @@ const getPlugins = ({ browser }) => [
     },
   }),
 ];
+
+const getTreeshake = ({ browser }) => ({
+  moduleSideEffects: (id) => (browser ? id !== 'zlib' : id !== 'fflate'),
+});
 
 const serverConfig = {
   input,
@@ -52,6 +43,7 @@ const serverConfig = {
   ],
   external: getExternal({ browser: false }),
   plugins: getPlugins({ browser: false }),
+  treeshake: getTreeshake({ browser: false }),
 };
 
 const browserConfig = {
@@ -62,6 +54,7 @@ const browserConfig = {
   ],
   external: getExternal({ browser: true }),
   plugins: getPlugins({ browser: true }),
+  treeshake: getTreeshake({ browser: true }),
 };
 
 export default [serverConfig, browserConfig];
