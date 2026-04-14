@@ -7,7 +7,7 @@ async function getPixels(Ctor, fileName) {
   const image = new Ctor(fs.readFileSync(`test/images/${fileName}`));
   return new Promise(resolve => {
     Ctor === PNGNode
-      ? image.decodePixels(resolve)
+      ? image.decodePixels(pixels => resolve(Buffer.isBuffer(pixels) ? pixels : Buffer.from(pixels)))
       : resolve(image.decodePixels());
   });
 }
