@@ -36,11 +36,9 @@
   },
   "bugs": "http://github.com/devongovett/png.js/issues",
   "dependencies": {
-    "browserify-zlib": "^0.2.0"
+    "fflate": "^0.8.2"
   },
   "devDependencies": {
-    "@rollup/plugin-alias": "5.1.0",
-    "@rollup/plugin-node-resolve": "15.2.0",
     "@rollup/plugin-replace": "5.0.0",
     "jest": "24.1.0",
     "prettier": "1.16.4",
