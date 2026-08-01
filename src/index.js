@@ -164,12 +164,6 @@ class PNG {
     return b1 | b2 | b3 | b4;
   }
 
-  readUInt16() {
-    const b1 = this.data[this.pos++] << 8;
-    const b2 = this.data[this.pos++];
-    return b1 | b2;
-  }
-
   decodePixels(fn) {
     return inflate(new Uint8Array(this.imgData), (err, data) => {
       if (err) {
