@@ -7,9 +7,17 @@ async function getPixels(Ctor, fileName) {
   const image = new Ctor(fs.readFileSync(`test/images/${fileName}`));
   return new Promise(resolve => {
     Ctor === PNGNode
-      ? image.decodePixels(pixels => resolve(Buffer.isBuffer(pixels) ? pixels : Buffer.from(pixels)))
+      ? image.decodePixels(pixels =>
+          resolve(Buffer.isBuffer(pixels) ? pixels : Buffer.from(pixels))
+        )
       : resolve(image.decodePixels());
   });
+}
+
+function getPixelsSync(Ctor, fileName) {
+  const image = new Ctor(fs.readFileSync(`test/images/${fileName}`));
+  const pixels = image.decodePixelsSync();
+  return Buffer.isBuffer(pixels) ? pixels : Buffer.from(pixels);
 }
 
 describe('pixels', () => {
@@ -24,6 +32,14 @@ describe('pixels', () => {
     test.each(files)('%s', async fileName => {
       const pixels = await getPixels(PNG, fileName);
       expect(pixels).toMatchSnapshot();
+    });
+  });
+
+  describe('sync', () => {
+    test.each(files)('node %s', async fileName => {
+      expect(getPixelsSync(PNGNode, fileName)).toEqual(
+        await getPixels(PNGNode, fileName)
+      );
     });
   });
 });
