@@ -2,6 +2,7 @@
   "name": "png-js",
   "description": "A PNG decoder in JavaScript",
   "version": "2.0.0",
+  "license": "MIT",
   "type": "module",
   "main": "./lib/png-js.cjs",
   "module": "./lib/png-js.js",
