@@ -57,27 +57,36 @@ runs scanline-by-scanline — interlaced (Adam7) images use a two-scanline
 ring buffer instead of per-pass scratch allocations.
 
 Measured with the in-repo suite (`yarn bench:fixtures && yarn bench && yarn
-bench:mem`, Node 24, Apple Silicon) against the previous decoder, which
+bench:mem`, Node 24, Apple Silicon) against the 2.0.0 decoder, which
 accumulated IDAT byte-by-byte into a plain JS array and pinned the source
-buffer on the instance:
+buffer on the instance. Both sides were measured with the same harness
+(`PNG_LIB` pointed at a built 2.0.0 worktree for the baseline).
 
-**2048×2048 RGBA, incompressible noise (16 MB file, filter 0):**
+**2048×2048 RGBA, incompressible noise (16 MB file, filter None):**
 
-| Metric                                   | Before | After  | Change |
-| ---------------------------------------- | ------ | ------ | ------ |
-| Peak RSS, `new PNG(buffer)`              | 445 MB | 17 MB  | −96%   |
-| Peak RSS, parse + `decodePixels`         | 498 MB | 58 MB  | −88%   |
-| Retained after caller drops file buffer  | 32 MB  | 16 MB  | −50%   |
-| Retained after releasing the instance    | 36 MB  | ~0     | −100%  |
-| `new PNG(buffer)` (median)               | 117 ms | 1.1 ms | −99%   |
-| `decodePixels` (median)                  | 171 ms | 11 ms  | −94%   |
+| Metric                                  | 2.0.0  | Now    | Change |
+| --------------------------------------- | ------ | ------ | ------ |
+| Peak RSS, `new PNG(buffer)`             | 445 MB | 16 MB  | −96%   |
+| Peak RSS, parse + `decodePixels`        | 498 MB | 58 MB  | −88%   |
+| Retained after caller drops file buffer | 32 MB  | 16 MB  | −50%   |
+| `new PNG(buffer)` (median)              | 114 ms | 1.1 ms | −99%   |
+| `decodePixels` (median)                 | 32 ms  | 9.5 ms | −70%   |
+
+**Same image, Adam7 interlaced:**
+
+| Metric                           | 2.0.0  | Now    | Change |
+| -------------------------------- | ------ | ------ | ------ |
+| Peak RSS, `new PNG(buffer)`      | 445 MB | 16 MB  | −96%   |
+| Peak RSS, parse + `decodePixels` | 498 MB | 76 MB  | −85%   |
+| `new PNG(buffer)` (median)       | 127 ms | 1.4 ms | −99%   |
+| `decodePixels` (median)          | 62 ms  | 21 ms  | −66%   |
 
 **2048×2048 RGB gradient (12 MB raw, filters 1–4 cycling per row):**
 
-| Metric                     | Before  | After   | Change |
-| -------------------------- | ------- | ------- | ------ |
-| Peak RSS, `new PNG(buffer)`| 3.0 MB  | 0.1 MB  | −98%   |
-| `decodePixels` (median)    | 52 ms   | 36 ms   | −30%   |
+| Metric                      | 2.0.0  | Now    | Change |
+| --------------------------- | ------ | ------ | ------ |
+| Peak RSS, `new PNG(buffer)` | 2.8 MB | 0.2 MB | −93%   |
+| `decodePixels` (median)     | 54 ms  | 36 ms  | −33%   |
 
 See `bench/README.md` for methodology and how to compare two checkouts with
 the same harness.

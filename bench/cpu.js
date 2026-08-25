@@ -32,10 +32,10 @@ const results = [];
 for (const { name, buffer } of benchFixtures()) {
   const iterations = iterationsFor(buffer);
   const construct = await timeOne(() => new PNG(buffer), iterations);
-  const decode = await timeOne(
-    () => decodePixels(new PNG(buffer)),
-    iterations
-  );
+  // Construct once outside the timed loop so decode samples measure only
+  // inflate + unfilter, not a fresh parse per iteration.
+  const png = new PNG(buffer);
+  const decode = await timeOne(() => decodePixels(png), iterations);
   results.push({
     fixture: name,
     iterations,

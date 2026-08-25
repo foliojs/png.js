@@ -32,13 +32,48 @@ function chunk(type, data) {
   return out;
 }
 
-function ihdr(width, height, bitDepth, colorType) {
+function ihdr(width, height, bitDepth, colorType, interlace = 0) {
   const data = Buffer.alloc(13);
   data.writeUInt32BE(width, 0);
   data.writeUInt32BE(height, 4);
   data[8] = bitDepth;
   data[9] = colorType;
+  data[12] = interlace;
   return data;
+}
+
+const ADAM7_PASSES = [
+  [0, 0, 8, 8],
+  [4, 0, 8, 8],
+  [0, 4, 4, 8],
+  [2, 0, 4, 4],
+  [0, 2, 2, 4],
+  [1, 0, 2, 2],
+  [0, 1, 1, 2],
+];
+
+// Serializes raw pixels into Adam7 pass order, every row filter None.
+function serializeAdam7(raw, width, height, pixelBytes) {
+  const parts = [];
+  for (const [x0, y0, dx, dy] of ADAM7_PASSES) {
+    const passWidth = Math.ceil((width - x0) / dx);
+    const passHeight = Math.ceil((height - y0) / dy);
+    if (passWidth <= 0 || passHeight <= 0) continue;
+    const pass = Buffer.alloc(passHeight * (1 + passWidth * pixelBytes));
+    let pos = 0;
+    for (let passY = 0; passY < passHeight; passY++) {
+      pass[pos++] = 0;
+      const y = y0 + passY * dy;
+      for (let passX = 0; passX < passWidth; passX++) {
+        const x = x0 + passX * dx;
+        const src = (y * width + x) * pixelBytes;
+        raw.copy(pass, pos, src, src + pixelBytes);
+        pos += pixelBytes;
+      }
+    }
+    parts.push(pass);
+  }
+  return Buffer.concat(parts);
 }
 
 // xorshift32 — deterministic noise
@@ -142,4 +177,23 @@ const SIZE = 2048;
     }
   }
   writePng('large-rgb-gradient.png', SIZE, SIZE, 2, 3, raw, y => (y % 4) + 1);
+}
+
+// Adam7-interlaced noise: exercises the interlaced decode path (per-pass
+// scratch memory and the pass-merge loops) at scale.
+{
+  const rand = makeRandom(0xdecade);
+  const raw = Buffer.alloc(SIZE * SIZE * 4);
+  for (let i = 0; i < raw.length; i++) raw[i] = rand();
+  const filtered = serializeAdam7(raw, SIZE, SIZE, 4);
+  const file = Buffer.concat([
+    Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]),
+    chunk('IHDR', ihdr(SIZE, SIZE, 8, 6, 1)),
+    chunk('IDAT', zlib.deflateSync(filtered)),
+    chunk('IEND', Buffer.alloc(0)),
+  ]);
+  fs.writeFileSync(path.join(fixturesDir, 'large-rgba-interlaced.png'), file);
+  console.log(
+    `large-rgba-interlaced.png: ${SIZE}x${SIZE}, raw ${mb(raw.length)}, file ${mb(file.length)}`
+  );
 }
