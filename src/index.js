@@ -8,126 +8,141 @@ import {
 const inflate = BROWSER ? browserInflate : nodeInflate;
 const inflateSync = BROWSER ? browserInflateSync : nodeInflateSync;
 
-function decodePixelsData(png, data) {
-  const { width, height } = png;
-  const pixelBytes = png.pixelBitlength / 8;
+// Decodes an inflated PNG data stream into raw pixel bytes. Takes plain
+// image metadata rather than the PNG instance so callers can hand over a
+// lightweight object instead of pinning the decoder's whole state.
+function decodePixelsData(meta, data) {
+  const { width, height, interlaceMethod, pixelBitlength } = meta;
+
+  const pixelBytes = pixelBitlength / 8;
 
   const pixels = new Uint8Array(width * height * pixelBytes);
   const { length } = data;
   let pos = 0;
 
-  function pass(x0, y0, dx, dy, singlePass = false) {
-    const w = Math.ceil((width - x0) / dx);
-    const h = Math.ceil((height - y0) / dy);
-    const scanlineLength = pixelBytes * w;
-    const buffer = singlePass ? pixels : new Uint8Array(scanlineLength * h);
-    let row = 0;
-    let c = 0;
-    while (row < h && pos < length) {
-      var byte, col, i, left, upper;
-      switch (data[pos++]) {
-        case 0: // None
-          for (i = 0; i < scanlineLength; i++) {
-            buffer[c++] = data[pos++];
-          }
-          break;
-
-        case 1: // Sub
-          for (i = 0; i < scanlineLength; i++) {
-            byte = data[pos++];
-            left = i < pixelBytes ? 0 : buffer[c - pixelBytes];
-            buffer[c++] = (byte + left) % 256;
-          }
-          break;
-
-        case 2: // Up
-          for (i = 0; i < scanlineLength; i++) {
-            byte = data[pos++];
-            col = (i - (i % pixelBytes)) / pixelBytes;
-            upper =
-              row &&
-              buffer[
-                (row - 1) * scanlineLength + col * pixelBytes + (i % pixelBytes)
-              ];
-            buffer[c++] = (upper + byte) % 256;
-          }
-          break;
-
-        case 3: // Average
-          for (i = 0; i < scanlineLength; i++) {
-            byte = data[pos++];
-            col = (i - (i % pixelBytes)) / pixelBytes;
-            left = i < pixelBytes ? 0 : buffer[c - pixelBytes];
-            upper =
-              row &&
-              buffer[
-                (row - 1) * scanlineLength + col * pixelBytes + (i % pixelBytes)
-              ];
-            buffer[c++] = (byte + Math.floor((left + upper) / 2)) % 256;
-          }
-          break;
-
-        case 4: // Paeth
-          for (i = 0; i < scanlineLength; i++) {
-            var paeth, upperLeft;
-            byte = data[pos++];
-            col = (i - (i % pixelBytes)) / pixelBytes;
-            left = i < pixelBytes ? 0 : buffer[c - pixelBytes];
-
-            if (row === 0) {
-              upper = upperLeft = 0;
-            } else {
-              upper =
-                buffer[
-                  (row - 1) * scanlineLength +
-                    col * pixelBytes +
-                    (i % pixelBytes)
-                ];
-              upperLeft =
-                col &&
-                buffer[
-                  (row - 1) * scanlineLength +
-                    (col - 1) * pixelBytes +
-                    (i % pixelBytes)
-                ];
-            }
-
-            const p = left + upper - upperLeft;
-            const pa = Math.abs(p - left);
-            const pb = Math.abs(p - upper);
-            const pc = Math.abs(p - upperLeft);
-
-            if (pa <= pb && pa <= pc) {
-              paeth = left;
-            } else if (pb <= pc) {
-              paeth = upper;
-            } else {
-              paeth = upperLeft;
-            }
-
-            buffer[c++] = (byte + paeth) % 256;
-          }
-          break;
-
-        default:
-          throw new Error(`Invalid filter algorithm: ${data[pos - 1]}`);
-      }
-
-      if (!singlePass) {
-        let pixelsPos = ((y0 + row * dy) * width + x0) * pixelBytes;
-        let bufferPos = row * scanlineLength;
-        for (i = 0; i < w; i++) {
-          for (let j = 0; j < pixelBytes; j++)
-            pixels[pixelsPos++] = buffer[bufferPos++];
-          pixelsPos += (dx - 1) * pixelBytes;
+  // Unfilters one scanline of `data` at `pos` into `row`, with `prev`
+  // the unfiltered scanline above (null for the first row of a pass).
+  // Scanlines only ever need their predecessor, so neighbor lookups
+  // are plain offsets instead of whole-buffer index arithmetic.
+  function unfilterRow(filter, rowBytes, row, prev) {
+    var i, left, upper, upperLeft;
+    switch (filter) {
+      case 0: // None
+        if (pos + rowBytes <= length) {
+          row.set(data.subarray(pos, pos + rowBytes));
+        } else {
+          // Truncated stream: missing trailing bytes read as zero,
+          // matching the filtered paths below.
+          row.fill(0);
+          row.set(data.subarray(pos, length));
         }
-      }
+        break;
 
+      case 1: // Sub
+        for (i = 0; i < rowBytes; i++) {
+          left = i < pixelBytes ? 0 : row[i - pixelBytes];
+          row[i] = (data[pos + i] + left) & 0xff;
+        }
+        break;
+
+      case 2: // Up
+        for (i = 0; i < rowBytes; i++) {
+          upper = prev ? prev[i] : 0;
+          row[i] = (data[pos + i] + upper) & 0xff;
+        }
+        break;
+
+      case 3: // Average
+        for (i = 0; i < rowBytes; i++) {
+          left = i < pixelBytes ? 0 : row[i - pixelBytes];
+          upper = prev ? prev[i] : 0;
+          row[i] = (data[pos + i] + ((left + upper) >> 1)) & 0xff;
+        }
+        break;
+
+      case 4: // Paeth
+        for (i = 0; i < rowBytes; i++) {
+          left = i < pixelBytes ? 0 : row[i - pixelBytes];
+          if (prev) {
+            upper = prev[i];
+            upperLeft = i < pixelBytes ? 0 : prev[i - pixelBytes];
+          } else {
+            upper = upperLeft = 0;
+          }
+
+          const p = left + upper - upperLeft;
+          const pa = Math.abs(p - left);
+          const pb = Math.abs(p - upper);
+          const pc = Math.abs(p - upperLeft);
+
+          const paeth =
+            pa <= pb && pa <= pc ? left : pb <= pc ? upper : upperLeft;
+          row[i] = (data[pos + i] + paeth) & 0xff;
+        }
+        break;
+
+      default:
+        throw new Error(`Invalid filter algorithm: ${filter}`);
+    }
+    pos += rowBytes;
+  }
+
+  function singlePass() {
+    const rowBytes = Math.ceil(pixelBytes * width);
+    let offset = 0;
+    let row = 0;
+    // Rows are contiguous in `pixels`, so unfilter in place using the
+    // previous row's slice as the neighbor source.
+    while (row < height && pos < length) {
+      const filter = data[pos++];
+      const cur = pixels.subarray(offset, offset + rowBytes);
+      const prev =
+        row === 0 ? null : pixels.subarray(offset - rowBytes, offset);
+      unfilterRow(filter, rowBytes, cur, prev);
+      offset += rowBytes;
       row++;
     }
   }
 
-  if (png.interlaceMethod === 1) {
+  function interlaced() {
+    // Unfiltering only ever needs the current and previous scanline,
+    // so a two-row ring replaces the old whole-pass scratch buffers
+    // (which peaked at half the image for the final Adam7 pass).
+    const maxRowBytes = Math.ceil(pixelBytes * width);
+    const ringA = new Uint8Array(maxRowBytes);
+    const ringB = new Uint8Array(maxRowBytes);
+
+    function pass(x0, y0, dx, dy) {
+      const w = Math.ceil((width - x0) / dx);
+      const h = Math.ceil((height - y0) / dy);
+      const rowBytes = Math.ceil(pixelBytes * w);
+      let cur = ringA.subarray(0, rowBytes);
+      let spare = ringB.subarray(0, rowBytes);
+      let prev = null;
+      let row = 0;
+      while (row < h && pos < length) {
+        const filter = data[pos++];
+        unfilterRow(filter, rowBytes, cur, prev);
+
+        let pixelsPos = ((y0 + row * dy) * width + x0) * pixelBytes;
+        if (dx === 1) {
+          pixels.set(cur, pixelsPos);
+        } else {
+          let bufferPos = 0;
+          for (let i = 0; i < w; i++) {
+            for (let j = 0; j < pixelBytes; j++)
+              pixels[pixelsPos++] = cur[bufferPos++];
+            pixelsPos += (dx - 1) * pixelBytes;
+          }
+        }
+
+        const next = prev === null ? spare : prev;
+        prev = cur;
+        cur = next;
+        row++;
+      }
+    }
+
     /*
       1 6 4 6 2 6 4 6
       7 7 7 7 7 7 7 7
@@ -145,11 +160,28 @@ function decodePixelsData(png, data) {
     pass(0, 2, 2, 4); // 5
     pass(1, 0, 2, 2); // 6
     pass(0, 1, 1, 2); // 7
+  }
+
+  if (interlaceMethod === 1) {
+    interlaced();
   } else {
-    pass(0, 0, 1, 1, true);
+    singlePass();
   }
 
   return pixels;
+}
+
+// Decodes bytes[start..end) as latin1 without spreading the whole range
+// onto the stack (String.fromCharCode has an argument-count limit).
+function latin1(bytes, start, end) {
+  let result = '';
+  for (let i = start; i < end; i += 0x8000) {
+    result += String.fromCharCode.apply(
+      String,
+      bytes.slice(i, Math.min(i + 0x8000, end))
+    );
+  }
+  return result;
 }
 
 class PNG {
@@ -182,6 +214,12 @@ class PNG {
     this.imgData = [];
     this.transparency = {};
     this.text = {};
+
+    // IDAT payloads are collected as views into the source buffer and
+    // concatenated exactly once at IEND, so the compressed stream is never
+    // held in more than one copy.
+    const idatChunks = [];
+    let idatLength = 0;
 
     if (
       data.length < 8 ||
@@ -235,9 +273,9 @@ class PNG {
           break;
 
         case 'IDAT':
-          for (i = 0; i < chunkSize; i++) {
-            this.imgData.push(this.data[this.pos++]);
-          }
+          idatChunks.push(this.data.subarray(this.pos, this.pos + chunkSize));
+          idatLength += chunkSize;
+          this.pos += chunkSize;
           break;
 
         case 'tRNS':
@@ -273,11 +311,8 @@ class PNG {
         case 'tEXt':
           var text = this.read(chunkSize);
           var index = text.indexOf(0);
-          var key = String.fromCharCode.apply(String, text.slice(0, index));
-          this.text[key] = String.fromCharCode.apply(
-            String,
-            text.slice(index + 1)
-          );
+          var key = latin1(text, 0, index);
+          this.text[key] = latin1(text, index + 1, text.length);
           break;
 
         case 'IEND':
@@ -307,7 +342,17 @@ class PNG {
               break;
           }
 
-          this.imgData = new Uint8Array(this.imgData);
+          this.imgData = new Uint8Array(idatLength);
+          var offset = 0;
+          for (i = 0; i < idatChunks.length; i++) {
+            this.imgData.set(idatChunks[i], offset);
+            offset += idatChunks[i].length;
+          }
+
+          // Everything kept past construction (imgData, palette,
+          // transparency, text) is copied out of the source buffer, so
+          // release it rather than pinning the whole file on the instance.
+          this.data = null;
           return;
           break;
 
@@ -321,10 +366,10 @@ class PNG {
   }
 
   read(bytes) {
-    const result = new Array(bytes);
-    for (let i = 0; i < bytes; i++) {
-      result[i] = this.data[this.pos++];
-    }
+    // Array.from copies, so the result never pins the source buffer.
+    // These stay plain arrays: consumers index and push into them.
+    const result = Array.from(this.data.subarray(this.pos, this.pos + bytes));
+    this.pos += bytes;
     return result;
   }
 
@@ -337,17 +382,34 @@ class PNG {
   }
 
   decodePixels(fn) {
-    return inflate(new Uint8Array(this.imgData), (err, data) => {
+    // fflate's async unzlib transfers its input buffer to a worker,
+    // detaching it, so the browser build must hand over a throwaway copy.
+    // Node's zlib.inflate only reads the buffer.
+    const input = BROWSER ? this.imgData.slice() : this.imgData;
+
+    // The callback must reference only this plain metadata, never `this`, so
+    // a caller that drops the instance doesn't keep it (and everything it
+    // retains) alive through the async inflate.
+    const meta = {
+      width: this.width,
+      height: this.height,
+      interlaceMethod: this.interlaceMethod,
+      pixelBitlength: this.pixelBitlength
+    };
+
+    return inflate(input, (err, data) => {
       if (err) {
         throw err;
       }
 
-      return fn(decodePixelsData(this, data));
+      return fn(decodePixelsData(meta, data));
     });
   }
 
   decodePixelsSync() {
-    return decodePixelsData(this, inflateSync(new Uint8Array(this.imgData)));
+    // Both sync inflaters only read their input, and `imgData` is already a
+    // Uint8Array owned by this instance, so no defensive copy is needed.
+    return decodePixelsData(this, inflateSync(this.imgData));
   }
 
   decodePalette() {
