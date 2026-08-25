@@ -183,11 +183,36 @@ class PNG {
     this.transparency = {};
     this.text = {};
 
+    if (
+      data.length < 8 ||
+      data[0] !== 0x89 ||
+      data[1] !== 0x50 ||
+      data[2] !== 0x4e ||
+      data[3] !== 0x47 ||
+      data[4] !== 0x0d ||
+      data[5] !== 0x0a ||
+      data[6] !== 0x1a ||
+      data[7] !== 0x0a
+    ) {
+      throw new Error('Invalid PNG signature');
+    }
+
     while (true) {
+      if (this.pos + 8 > this.data.length) {
+        throw new Error('Incomplete or corrupt PNG file');
+      }
+
       const chunkSize = this.readUInt32();
       let section = '';
       for (i = 0; i < 4; i++) {
         section += String.fromCharCode(this.data[this.pos++]);
+      }
+
+      // The chunk payload and its 4-byte CRC must fit in the remaining
+      // data, otherwise a corrupt length would drive huge allocations or
+      // out-of-bounds reads below.
+      if (chunkSize > this.data.length - this.pos - 4) {
+        throw new Error('Incomplete or corrupt PNG file');
       }
 
       switch (section) {
@@ -200,6 +225,9 @@ class PNG {
           this.compressionMethod = this.data[this.pos++];
           this.filterMethod = this.data[this.pos++];
           this.interlaceMethod = this.data[this.pos++];
+          if (this.width === 0 || this.height === 0) {
+            throw new Error('Invalid PNG dimensions');
+          }
           break;
 
         case 'PLTE':
@@ -289,10 +317,6 @@ class PNG {
       }
 
       this.pos += 4; // Skip the CRC
-
-      if (this.pos > this.data.length) {
-        throw new Error('Incomplete or corrupt PNG file');
-      }
     }
   }
 
@@ -309,7 +333,7 @@ class PNG {
     const b2 = this.data[this.pos++] << 16;
     const b3 = this.data[this.pos++] << 8;
     const b4 = this.data[this.pos++];
-    return b1 | b2 | b3 | b4;
+    return (b1 | b2 | b3 | b4) >>> 0;
   }
 
   decodePixels(fn) {
