@@ -41,25 +41,20 @@
   },
   "devDependencies": {
     "@rollup/plugin-replace": "5.0.0",
-    "jest": "24.1.0",
+    "jsdom": "^24.0.0",
     "prettier": "1.16.4",
     "rimraf": "2.6.3",
     "rollup": "4.9.0",
-    "rollup-plugin-ignore": "1.0.10"
+    "rollup-plugin-ignore": "1.0.10",
+    "vite": "^8.1.5",
+    "vitest": "^4.1.8"
   },
   "scripts": {
-    "test": "yarn build && jest",
+    "test": "yarn build && vitest run",
     "build": "rimraf ./lib && rollup -c",
     "prettier": "prettier test/**/*.js png-node.js png.js --write"
   },
-  "engine": [
-    "node >= v0.6.0"
-  ],
-  "jest": {
-    "setupFiles": [
-      "<rootDir>/test/patch-canvas.js",
-      "<rootDir>/zlib.js",
-      "<rootDir>/png.js"
-    ]
+  "engines": {
+    "node": ">=18"
   }
 }

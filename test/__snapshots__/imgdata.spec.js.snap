@@ -1,8 +1,8 @@
-// Jest Snapshot v1, https://goo.gl/fbAQLP
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
 
-exports[`imgData browser animated.png 1`] = `Uint8Array []`;
+exports[`imgData > browser > animated.png 1`] = `Uint8Array []`;
 
-exports[`imgData browser black-white.png 1`] = `
+exports[`imgData > browser > black-white.png 1`] = `
 Uint8Array [
   120,
   156,
@@ -98,7 +98,7 @@ Uint8Array [
 ]
 `;
 
-exports[`imgData browser grayscale-8bit.png 1`] = `
+exports[`imgData > browser > grayscale-8bit.png 1`] = `
 Uint8Array [
   120,
   156,
@@ -168,7 +168,7 @@ Uint8Array [
 ]
 `;
 
-exports[`imgData browser grayscale-16bit.png 1`] = `
+exports[`imgData > browser > grayscale-16bit.png 1`] = `
 Uint8Array [
   120,
   156,
@@ -267,7 +267,7 @@ Uint8Array [
 ]
 `;
 
-exports[`imgData browser grayscale-alpha-8bit.png 1`] = `
+exports[`imgData > browser > grayscale-alpha-8bit.png 1`] = `
 Uint8Array [
   120,
   156,
@@ -325,7 +325,7 @@ Uint8Array [
 ]
 `;
 
-exports[`imgData browser grayscale-alpha-16bit.png 1`] = `
+exports[`imgData > browser > grayscale-alpha-16bit.png 1`] = `
 Uint8Array [
   120,
   156,
@@ -2463,7 +2463,7 @@ Uint8Array [
 ]
 `;
 
-exports[`imgData browser interlaced-grayscale-8bit.png 1`] = `
+exports[`imgData > browser > interlaced-grayscale-8bit.png 1`] = `
 Uint8Array [
   120,
   156,
@@ -2649,7 +2649,7 @@ Uint8Array [
 ]
 `;
 
-exports[`imgData browser interlaced-pallete-8bit.png 1`] = `
+exports[`imgData > browser > interlaced-pallete-8bit.png 1`] = `
 Uint8Array [
   120,
   156,
@@ -3328,7 +3328,7 @@ Uint8Array [
 ]
 `;
 
-exports[`imgData browser interlaced-rgb-8bit.png 1`] = `
+exports[`imgData > browser > interlaced-rgb-8bit.png 1`] = `
 Uint8Array [
   120,
   156,
@@ -3575,7 +3575,7 @@ Uint8Array [
 ]
 `;
 
-exports[`imgData browser interlaced-rgb-16bit.png 1`] = `
+exports[`imgData > browser > interlaced-rgb-16bit.png 1`] = `
 Uint8Array [
   120,
   156,
@@ -4102,7 +4102,7 @@ Uint8Array [
 ]
 `;
 
-exports[`imgData browser interlaced-rgb-alpha-8bit.png 1`] = `
+exports[`imgData > browser > interlaced-rgb-alpha-8bit.png 1`] = `
 Uint8Array [
   120,
   156,
@@ -4395,7 +4395,7 @@ Uint8Array [
 ]
 `;
 
-exports[`imgData browser rgb-8bit.png 1`] = `
+exports[`imgData > browser > rgb-8bit.png 1`] = `
 Uint8Array [
   120,
   156,
@@ -4472,7 +4472,7 @@ Uint8Array [
 ]
 `;
 
-exports[`imgData browser rgb-16bit.png 1`] = `
+exports[`imgData > browser > rgb-16bit.png 1`] = `
 Uint8Array [
   120,
   156,
@@ -4706,7 +4706,7 @@ Uint8Array [
 ]
 `;
 
-exports[`imgData browser rgb-alpha-8bit.png 1`] = `
+exports[`imgData > browser > rgb-alpha-8bit.png 1`] = `
 Uint8Array [
   120,
   156,
@@ -4822,7 +4822,7 @@ Uint8Array [
 ]
 `;
 
-exports[`imgData browser rgb-alpha-16bit.png 1`] = `
+exports[`imgData > browser > rgb-alpha-16bit.png 1`] = `
 Uint8Array [
   120,
   156,
@@ -8189,7 +8189,7 @@ Uint8Array [
 ]
 `;
 
-exports[`imgData browser transparent-black-grayscale-4bit.png 1`] = `
+exports[`imgData > browser > transparent-black-grayscale-4bit.png 1`] = `
 Uint8Array [
   40,
   145,
@@ -8522,7 +8522,7 @@ Uint8Array [
 ]
 `;
 
-exports[`imgData browser transparent-white-grayscale-16bit.png 1`] = `
+exports[`imgData > browser > transparent-white-grayscale-16bit.png 1`] = `
 Uint8Array [
   72,
   137,
@@ -9739,7 +9739,7 @@ Uint8Array [
 ]
 `;
 
-exports[`imgData browser transparent-white-palette-8bit.png 1`] = `
+exports[`imgData > browser > transparent-white-palette-8bit.png 1`] = `
 Uint8Array [
   56,
   141,
@@ -10394,7 +10394,7 @@ Uint8Array [
 ]
 `;
 
-exports[`imgData browser transparent-white-rgb-16bit.png 1`] = `
+exports[`imgData > browser > transparent-white-rgb-16bit.png 1`] = `
 Uint8Array [
   88,
   133,
@@ -12331,7 +12331,7 @@ Uint8Array [
 ]
 `;
 
-exports[`imgData node animated.png 1`] = `
+exports[`imgData > node > animated.png 1`] = `
 Object {
   "data": Array [
     56,
@@ -12698,7 +12698,7 @@ Object {
 }
 `;
 
-exports[`imgData node black-white.png 1`] = `
+exports[`imgData > node > black-white.png 1`] = `
 Object {
   "data": Array [
     120,
@@ -12797,7 +12797,7 @@ Object {
 }
 `;
 
-exports[`imgData node grayscale-8bit.png 1`] = `
+exports[`imgData > node > grayscale-8bit.png 1`] = `
 Object {
   "data": Array [
     120,
@@ -12870,7 +12870,7 @@ Object {
 }
 `;
 
-exports[`imgData node grayscale-16bit.png 1`] = `
+exports[`imgData > node > grayscale-16bit.png 1`] = `
 Object {
   "data": Array [
     120,
@@ -12972,7 +12972,7 @@ Object {
 }
 `;
 
-exports[`imgData node grayscale-alpha-8bit.png 1`] = `
+exports[`imgData > node > grayscale-alpha-8bit.png 1`] = `
 Object {
   "data": Array [
     120,
@@ -13033,7 +13033,7 @@ Object {
 }
 `;
 
-exports[`imgData node grayscale-alpha-16bit.png 1`] = `
+exports[`imgData > node > grayscale-alpha-16bit.png 1`] = `
 Object {
   "data": Array [
     120,
@@ -15174,7 +15174,7 @@ Object {
 }
 `;
 
-exports[`imgData node interlaced-grayscale-8bit.png 1`] = `
+exports[`imgData > node > interlaced-grayscale-8bit.png 1`] = `
 Object {
   "data": Array [
     120,
@@ -15363,7 +15363,7 @@ Object {
 }
 `;
 
-exports[`imgData node interlaced-pallete-8bit.png 1`] = `
+exports[`imgData > node > interlaced-pallete-8bit.png 1`] = `
 Object {
   "data": Array [
     120,
@@ -16045,7 +16045,7 @@ Object {
 }
 `;
 
-exports[`imgData node interlaced-rgb-8bit.png 1`] = `
+exports[`imgData > node > interlaced-rgb-8bit.png 1`] = `
 Object {
   "data": Array [
     120,
@@ -16295,7 +16295,7 @@ Object {
 }
 `;
 
-exports[`imgData node interlaced-rgb-16bit.png 1`] = `
+exports[`imgData > node > interlaced-rgb-16bit.png 1`] = `
 Object {
   "data": Array [
     120,
@@ -16825,7 +16825,7 @@ Object {
 }
 `;
 
-exports[`imgData node interlaced-rgb-alpha-8bit.png 1`] = `
+exports[`imgData > node > interlaced-rgb-alpha-8bit.png 1`] = `
 Object {
   "data": Array [
     120,
@@ -17121,7 +17121,7 @@ Object {
 }
 `;
 
-exports[`imgData node rgb-8bit.png 1`] = `
+exports[`imgData > node > rgb-8bit.png 1`] = `
 Object {
   "data": Array [
     120,
@@ -17201,7 +17201,7 @@ Object {
 }
 `;
 
-exports[`imgData node rgb-16bit.png 1`] = `
+exports[`imgData > node > rgb-16bit.png 1`] = `
 Object {
   "data": Array [
     120,
@@ -17438,7 +17438,7 @@ Object {
 }
 `;
 
-exports[`imgData node rgb-alpha-8bit.png 1`] = `
+exports[`imgData > node > rgb-alpha-8bit.png 1`] = `
 Object {
   "data": Array [
     120,
@@ -17557,7 +17557,7 @@ Object {
 }
 `;
 
-exports[`imgData node rgb-alpha-16bit.png 1`] = `
+exports[`imgData > node > rgb-alpha-16bit.png 1`] = `
 Object {
   "data": Array [
     120,
@@ -20927,7 +20927,7 @@ Object {
 }
 `;
 
-exports[`imgData node transparent-black-grayscale-4bit.png 1`] = `
+exports[`imgData > node > transparent-black-grayscale-4bit.png 1`] = `
 Object {
   "data": Array [
     40,
@@ -21263,7 +21263,7 @@ Object {
 }
 `;
 
-exports[`imgData node transparent-white-grayscale-16bit.png 1`] = `
+exports[`imgData > node > transparent-white-grayscale-16bit.png 1`] = `
 Object {
   "data": Array [
     72,
@@ -22483,7 +22483,7 @@ Object {
 }
 `;
 
-exports[`imgData node transparent-white-palette-8bit.png 1`] = `
+exports[`imgData > node > transparent-white-palette-8bit.png 1`] = `
 Object {
   "data": Array [
     56,
@@ -23141,7 +23141,7 @@ Object {
 }
 `;
 
-exports[`imgData node transparent-white-rgb-16bit.png 1`] = `
+exports[`imgData > node > transparent-white-rgb-16bit.png 1`] = `
 Object {
   "data": Array [
     88,

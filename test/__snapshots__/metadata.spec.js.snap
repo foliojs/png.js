@@ -1,6 +1,6 @@
-// Jest Snapshot v1, https://goo.gl/fbAQLP
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
 
-exports[`metadata browser animated.png 1`] = `
+exports[`metadata > browser > animated.png 1`] = `
 Object {
   "animation": Object {
     "frames": Array [
@@ -4708,7 +4708,7 @@ Object {
 }
 `;
 
-exports[`metadata browser black-white.png 1`] = `
+exports[`metadata > browser > black-white.png 1`] = `
 Object {
   "animation": null,
   "bits": 1,
@@ -4729,7 +4729,7 @@ Object {
 }
 `;
 
-exports[`metadata browser grayscale-8bit.png 1`] = `
+exports[`metadata > browser > grayscale-8bit.png 1`] = `
 Object {
   "animation": null,
   "bits": 8,
@@ -4750,7 +4750,7 @@ Object {
 }
 `;
 
-exports[`metadata browser grayscale-16bit.png 1`] = `
+exports[`metadata > browser > grayscale-16bit.png 1`] = `
 Object {
   "animation": null,
   "bits": 16,
@@ -4771,7 +4771,7 @@ Object {
 }
 `;
 
-exports[`metadata browser grayscale-alpha-8bit.png 1`] = `
+exports[`metadata > browser > grayscale-alpha-8bit.png 1`] = `
 Object {
   "animation": null,
   "bits": 8,
@@ -4792,7 +4792,7 @@ Object {
 }
 `;
 
-exports[`metadata browser grayscale-alpha-16bit.png 1`] = `
+exports[`metadata > browser > grayscale-alpha-16bit.png 1`] = `
 Object {
   "animation": null,
   "bits": 16,
@@ -4813,7 +4813,7 @@ Object {
 }
 `;
 
-exports[`metadata browser interlaced-grayscale-8bit.png 1`] = `
+exports[`metadata > browser > interlaced-grayscale-8bit.png 1`] = `
 Object {
   "animation": null,
   "bits": 8,
@@ -4834,7 +4834,7 @@ Object {
 }
 `;
 
-exports[`metadata browser interlaced-pallete-8bit.png 1`] = `
+exports[`metadata > browser > interlaced-pallete-8bit.png 1`] = `
 Object {
   "animation": null,
   "bits": 8,
@@ -5624,7 +5624,7 @@ Object {
 }
 `;
 
-exports[`metadata browser interlaced-rgb-8bit.png 1`] = `
+exports[`metadata > browser > interlaced-rgb-8bit.png 1`] = `
 Object {
   "animation": null,
   "bits": 8,
@@ -5645,7 +5645,7 @@ Object {
 }
 `;
 
-exports[`metadata browser interlaced-rgb-16bit.png 1`] = `
+exports[`metadata > browser > interlaced-rgb-16bit.png 1`] = `
 Object {
   "animation": null,
   "bits": 16,
@@ -5666,7 +5666,7 @@ Object {
 }
 `;
 
-exports[`metadata browser interlaced-rgb-alpha-8bit.png 1`] = `
+exports[`metadata > browser > interlaced-rgb-alpha-8bit.png 1`] = `
 Object {
   "animation": null,
   "bits": 8,
@@ -5687,7 +5687,7 @@ Object {
 }
 `;
 
-exports[`metadata browser rgb-8bit.png 1`] = `
+exports[`metadata > browser > rgb-8bit.png 1`] = `
 Object {
   "animation": null,
   "bits": 8,
@@ -5708,7 +5708,7 @@ Object {
 }
 `;
 
-exports[`metadata browser rgb-16bit.png 1`] = `
+exports[`metadata > browser > rgb-16bit.png 1`] = `
 Object {
   "animation": null,
   "bits": 16,
@@ -5729,7 +5729,7 @@ Object {
 }
 `;
 
-exports[`metadata browser rgb-alpha-8bit.png 1`] = `
+exports[`metadata > browser > rgb-alpha-8bit.png 1`] = `
 Object {
   "animation": null,
   "bits": 8,
@@ -5750,7 +5750,7 @@ Object {
 }
 `;
 
-exports[`metadata browser rgb-alpha-16bit.png 1`] = `
+exports[`metadata > browser > rgb-alpha-16bit.png 1`] = `
 Object {
   "animation": null,
   "bits": 16,
@@ -5771,7 +5771,7 @@ Object {
 }
 `;
 
-exports[`metadata browser transparent-black-grayscale-4bit.png 1`] = `
+exports[`metadata > browser > transparent-black-grayscale-4bit.png 1`] = `
 Object {
   "animation": null,
   "bits": 4,
@@ -5794,7 +5794,7 @@ Object {
 }
 `;
 
-exports[`metadata browser transparent-white-grayscale-16bit.png 1`] = `
+exports[`metadata > browser > transparent-white-grayscale-16bit.png 1`] = `
 Object {
   "animation": null,
   "bits": 16,
@@ -5817,7 +5817,7 @@ Object {
 }
 `;
 
-exports[`metadata browser transparent-white-palette-8bit.png 1`] = `
+exports[`metadata > browser > transparent-white-palette-8bit.png 1`] = `
 Object {
   "animation": null,
   "bits": 8,
@@ -6832,7 +6832,7 @@ Object {
 }
 `;
 
-exports[`metadata browser transparent-white-rgb-16bit.png 1`] = `
+exports[`metadata > browser > transparent-white-rgb-16bit.png 1`] = `
 Object {
   "animation": null,
   "bits": 16,
@@ -6862,7 +6862,7 @@ Object {
 }
 `;
 
-exports[`metadata node animated.png 1`] = `
+exports[`metadata > node > animated.png 1`] = `
 Object {
   "bits": 8,
   "colorSpace": "DeviceRGB",
@@ -6882,7 +6882,7 @@ Object {
 }
 `;
 
-exports[`metadata node black-white.png 1`] = `
+exports[`metadata > node > black-white.png 1`] = `
 Object {
   "bits": 1,
   "colorSpace": "DeviceGray",
@@ -6902,7 +6902,7 @@ Object {
 }
 `;
 
-exports[`metadata node grayscale-8bit.png 1`] = `
+exports[`metadata > node > grayscale-8bit.png 1`] = `
 Object {
   "bits": 8,
   "colorSpace": "DeviceGray",
@@ -6922,7 +6922,7 @@ Object {
 }
 `;
 
-exports[`metadata node grayscale-16bit.png 1`] = `
+exports[`metadata > node > grayscale-16bit.png 1`] = `
 Object {
   "bits": 16,
   "colorSpace": "DeviceGray",
@@ -6942,7 +6942,7 @@ Object {
 }
 `;
 
-exports[`metadata node grayscale-alpha-8bit.png 1`] = `
+exports[`metadata > node > grayscale-alpha-8bit.png 1`] = `
 Object {
   "bits": 8,
   "colorSpace": "DeviceGray",
@@ -6962,7 +6962,7 @@ Object {
 }
 `;
 
-exports[`metadata node grayscale-alpha-16bit.png 1`] = `
+exports[`metadata > node > grayscale-alpha-16bit.png 1`] = `
 Object {
   "bits": 16,
   "colorSpace": "DeviceGray",
@@ -6982,7 +6982,7 @@ Object {
 }
 `;
 
-exports[`metadata node interlaced-grayscale-8bit.png 1`] = `
+exports[`metadata > node > interlaced-grayscale-8bit.png 1`] = `
 Object {
   "bits": 8,
   "colorSpace": "DeviceGray",
@@ -7002,7 +7002,7 @@ Object {
 }
 `;
 
-exports[`metadata node interlaced-pallete-8bit.png 1`] = `
+exports[`metadata > node > interlaced-pallete-8bit.png 1`] = `
 Object {
   "bits": 8,
   "colorSpace": "DeviceGray",
@@ -7791,7 +7791,7 @@ Object {
 }
 `;
 
-exports[`metadata node interlaced-rgb-8bit.png 1`] = `
+exports[`metadata > node > interlaced-rgb-8bit.png 1`] = `
 Object {
   "bits": 8,
   "colorSpace": "DeviceRGB",
@@ -7811,7 +7811,7 @@ Object {
 }
 `;
 
-exports[`metadata node interlaced-rgb-16bit.png 1`] = `
+exports[`metadata > node > interlaced-rgb-16bit.png 1`] = `
 Object {
   "bits": 16,
   "colorSpace": "DeviceRGB",
@@ -7831,7 +7831,7 @@ Object {
 }
 `;
 
-exports[`metadata node interlaced-rgb-alpha-8bit.png 1`] = `
+exports[`metadata > node > interlaced-rgb-alpha-8bit.png 1`] = `
 Object {
   "bits": 8,
   "colorSpace": "DeviceRGB",
@@ -7851,7 +7851,7 @@ Object {
 }
 `;
 
-exports[`metadata node rgb-8bit.png 1`] = `
+exports[`metadata > node > rgb-8bit.png 1`] = `
 Object {
   "bits": 8,
   "colorSpace": "DeviceRGB",
@@ -7871,7 +7871,7 @@ Object {
 }
 `;
 
-exports[`metadata node rgb-16bit.png 1`] = `
+exports[`metadata > node > rgb-16bit.png 1`] = `
 Object {
   "bits": 16,
   "colorSpace": "DeviceRGB",
@@ -7891,7 +7891,7 @@ Object {
 }
 `;
 
-exports[`metadata node rgb-alpha-8bit.png 1`] = `
+exports[`metadata > node > rgb-alpha-8bit.png 1`] = `
 Object {
   "bits": 8,
   "colorSpace": "DeviceRGB",
@@ -7911,7 +7911,7 @@ Object {
 }
 `;
 
-exports[`metadata node rgb-alpha-16bit.png 1`] = `
+exports[`metadata > node > rgb-alpha-16bit.png 1`] = `
 Object {
   "bits": 16,
   "colorSpace": "DeviceRGB",
@@ -7931,7 +7931,7 @@ Object {
 }
 `;
 
-exports[`metadata node transparent-black-grayscale-4bit.png 1`] = `
+exports[`metadata > node > transparent-black-grayscale-4bit.png 1`] = `
 Object {
   "bits": 4,
   "colorSpace": "DeviceGray",
@@ -7953,7 +7953,7 @@ Object {
 }
 `;
 
-exports[`metadata node transparent-white-grayscale-16bit.png 1`] = `
+exports[`metadata > node > transparent-white-grayscale-16bit.png 1`] = `
 Object {
   "bits": 16,
   "colorSpace": "DeviceGray",
@@ -7975,7 +7975,7 @@ Object {
 }
 `;
 
-exports[`metadata node transparent-white-palette-8bit.png 1`] = `
+exports[`metadata > node > transparent-white-palette-8bit.png 1`] = `
 Object {
   "bits": 8,
   "colorSpace": "DeviceGray",
@@ -8989,7 +8989,7 @@ Object {
 }
 `;
 
-exports[`metadata node transparent-white-rgb-16bit.png 1`] = `
+exports[`metadata > node > transparent-white-rgb-16bit.png 1`] = `
 Object {
   "bits": 16,
   "colorSpace": "DeviceRGB",

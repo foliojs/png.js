@@ -1,5 +1,5 @@
-const fs = require('fs');
-const PNGNode = require('../lib/png-js.cjs');
+import fs from 'fs';
+import PNGNode from '../lib/png-js.cjs';
 
 const files = fs.readdirSync('test/images');
 
