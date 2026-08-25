@@ -16,7 +16,15 @@ function decodePixelsData(meta, data) {
 
   const pixelBytes = pixelBitlength / 8;
 
-  const pixels = new Uint8Array(width * height * pixelBytes);
+  // Per the PNG spec, filtering treats sub-byte depths as one byte per
+  // pixel, and every scanline is padded to a whole byte. Using the
+  // rounded values keeps all offsets integral (fractional pixelBytes
+  // previously produced garbage neighbor reads and undersized buffers
+  // for 1/2/4-bit images).
+  const bytesPerPixel = Math.max(1, pixelBytes);
+  const fullRowBytes = Math.ceil(pixelBytes * width);
+
+  const pixels = new Uint8Array(height * fullRowBytes);
   const { length } = data;
   let pos = 0;
 
@@ -40,7 +48,7 @@ function decodePixelsData(meta, data) {
 
       case 1: // Sub
         for (i = 0; i < rowBytes; i++) {
-          left = i < pixelBytes ? 0 : row[i - pixelBytes];
+          left = i < bytesPerPixel ? 0 : row[i - bytesPerPixel];
           row[i] = (data[pos + i] + left) & 0xff;
         }
         break;
@@ -54,7 +62,7 @@ function decodePixelsData(meta, data) {
 
       case 3: // Average
         for (i = 0; i < rowBytes; i++) {
-          left = i < pixelBytes ? 0 : row[i - pixelBytes];
+          left = i < bytesPerPixel ? 0 : row[i - bytesPerPixel];
           upper = prev ? prev[i] : 0;
           row[i] = (data[pos + i] + ((left + upper) >> 1)) & 0xff;
         }
@@ -62,10 +70,10 @@ function decodePixelsData(meta, data) {
 
       case 4: // Paeth
         for (i = 0; i < rowBytes; i++) {
-          left = i < pixelBytes ? 0 : row[i - pixelBytes];
+          left = i < bytesPerPixel ? 0 : row[i - bytesPerPixel];
           if (prev) {
             upper = prev[i];
-            upperLeft = i < pixelBytes ? 0 : prev[i - pixelBytes];
+            upperLeft = i < bytesPerPixel ? 0 : prev[i - bytesPerPixel];
           } else {
             upper = upperLeft = 0;
           }
@@ -88,7 +96,7 @@ function decodePixelsData(meta, data) {
   }
 
   function singlePass() {
-    const rowBytes = Math.ceil(pixelBytes * width);
+    const rowBytes = fullRowBytes;
     let offset = 0;
     let row = 0;
     // Rows are contiguous in `pixels`, so unfilter in place using the
@@ -108,9 +116,8 @@ function decodePixelsData(meta, data) {
     // Unfiltering only ever needs the current and previous scanline,
     // so a two-row ring replaces the old whole-pass scratch buffers
     // (which peaked at half the image for the final Adam7 pass).
-    const maxRowBytes = Math.ceil(pixelBytes * width);
-    const ringA = new Uint8Array(maxRowBytes);
-    const ringB = new Uint8Array(maxRowBytes);
+    const ringA = new Uint8Array(fullRowBytes);
+    const ringB = new Uint8Array(fullRowBytes);
 
     function pass(x0, y0, dx, dy) {
       const w = Math.ceil((width - x0) / dx);
@@ -125,9 +132,16 @@ function decodePixelsData(meta, data) {
         unfilterRow(filter, rowBytes, cur, prev);
 
         let pixelsPos = ((y0 + row * dy) * width + x0) * pixelBytes;
-        if (dx === 1) {
+        if (
+          dx === 1 &&
+          Number.isInteger(pixelsPos) &&
+          pixelsPos + rowBytes <= pixels.length
+        ) {
           pixels.set(cur, pixelsPos);
         } else {
+          // Element writes tolerate fractional or out-of-range
+          // positions (sub-byte interlaced images can't be merged
+          // byte-addressably); they drop silently instead of throwing.
           let bufferPos = 0;
           for (let i = 0; i < w; i++) {
             for (let j = 0; j < pixelBytes; j++)
@@ -171,15 +185,12 @@ function decodePixelsData(meta, data) {
   return pixels;
 }
 
-// Decodes bytes[start..end) as latin1 without spreading the whole range
-// onto the stack (String.fromCharCode has an argument-count limit).
-function latin1(bytes, start, end) {
+// Decodes a byte array as latin1 without spreading it all onto the stack
+// (String.fromCharCode has an argument-count limit).
+function latin1(bytes) {
   let result = '';
-  for (let i = start; i < end; i += 0x8000) {
-    result += String.fromCharCode.apply(
-      String,
-      bytes.slice(i, Math.min(i + 0x8000, end))
-    );
+  for (let i = 0; i < bytes.length; i += 0x8000) {
+    result += String.fromCharCode.apply(String, bytes.slice(i, i + 0x8000));
   }
   return result;
 }
@@ -311,8 +322,8 @@ class PNG {
         case 'tEXt':
           var text = this.read(chunkSize);
           var index = text.indexOf(0);
-          var key = latin1(text, 0, index);
-          this.text[key] = latin1(text, index + 1, text.length);
+          var key = latin1(text.slice(0, index));
+          this.text[key] = latin1(text.slice(index + 1));
           break;
 
         case 'IEND':

@@ -135,6 +135,23 @@ Uint8Array [
 ]
 `;
 
+exports[`pixels > browser > grayscale-1bit-7x7.png 1`] = `
+Uint8Array [
+  170,
+  85,
+  170,
+  85,
+  170,
+  85,
+]
+`;
+
+exports[`pixels > browser > grayscale-4bit-1x2.png 1`] = `
+Uint8Array [
+  160,
+]
+`;
+
 exports[`pixels > browser > grayscale-8bit.png 1`] = `
 Uint8Array [
   0,
@@ -57191,6 +57208,31 @@ Object {
     0,
     0,
     0,
+  ],
+  "type": "Buffer",
+}
+`;
+
+exports[`pixels > node > grayscale-1bit-7x7.png 1`] = `
+Object {
+  "data": Array [
+    170,
+    85,
+    170,
+    85,
+    170,
+    85,
+    170,
+  ],
+  "type": "Buffer",
+}
+`;
+
+exports[`pixels > node > grayscale-4bit-1x2.png 1`] = `
+Object {
+  "data": Array [
+    160,
+    176,
   ],
   "type": "Buffer",
 }

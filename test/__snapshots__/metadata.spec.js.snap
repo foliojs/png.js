@@ -4729,6 +4729,48 @@ Object {
 }
 `;
 
+exports[`metadata > browser > grayscale-1bit-7x7.png 1`] = `
+Object {
+  "animation": null,
+  "bits": 1,
+  "colorSpace": "DeviceGray",
+  "colorType": 0,
+  "colors": 1,
+  "compressionMethod": 0,
+  "filterMethod": 0,
+  "hasAlphaChannel": false,
+  "height": 7,
+  "interlaceMethod": 0,
+  "palette": Array [],
+  "pixelBitlength": 1,
+  "pos": 67,
+  "text": Object {},
+  "transparency": Object {},
+  "width": 7,
+}
+`;
+
+exports[`metadata > browser > grayscale-4bit-1x2.png 1`] = `
+Object {
+  "animation": null,
+  "bits": 4,
+  "colorSpace": "DeviceGray",
+  "colorType": 0,
+  "colors": 1,
+  "compressionMethod": 0,
+  "filterMethod": 0,
+  "hasAlphaChannel": false,
+  "height": 2,
+  "interlaceMethod": 0,
+  "palette": Array [],
+  "pixelBitlength": 4,
+  "pos": 65,
+  "text": Object {},
+  "transparency": Object {},
+  "width": 1,
+}
+`;
+
 exports[`metadata > browser > grayscale-8bit.png 1`] = `
 Object {
   "animation": null,
@@ -6899,6 +6941,46 @@ Object {
   "text": Object {},
   "transparency": Object {},
   "width": 32,
+}
+`;
+
+exports[`metadata > node > grayscale-1bit-7x7.png 1`] = `
+Object {
+  "bits": 1,
+  "colorSpace": "DeviceGray",
+  "colorType": 0,
+  "colors": 1,
+  "compressionMethod": 0,
+  "filterMethod": 0,
+  "hasAlphaChannel": false,
+  "height": 7,
+  "interlaceMethod": 0,
+  "palette": Array [],
+  "pixelBitlength": 1,
+  "pos": 67,
+  "text": Object {},
+  "transparency": Object {},
+  "width": 7,
+}
+`;
+
+exports[`metadata > node > grayscale-4bit-1x2.png 1`] = `
+Object {
+  "bits": 4,
+  "colorSpace": "DeviceGray",
+  "colorType": 0,
+  "colors": 1,
+  "compressionMethod": 0,
+  "filterMethod": 0,
+  "hasAlphaChannel": false,
+  "height": 2,
+  "interlaceMethod": 0,
+  "palette": Array [],
+  "pixelBitlength": 4,
+  "pos": 65,
+  "text": Object {},
+  "transparency": Object {},
+  "width": 1,
 }
 `;
 
