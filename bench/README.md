@@ -54,3 +54,8 @@ stores live outside the V8 heap), per fixture, relative to a GC'd baseline:
   parse (and parse+decode) measured in a fresh child process per fixture,
   minus a read-only baseline run. This catches transient allocation spikes
   that in-process sampling misses.
+
+Retention metrics share one process across fixtures, so for kilobyte-sized
+fixtures the residual columns can go slightly negative when a previous
+fixture's memory is collected mid-measurement — treat sub-megabyte values
+as noise. The peak RSS columns are per-process and don't have this problem.

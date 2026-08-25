@@ -83,6 +83,10 @@ async function measure(name, file, readBuffer) {
     });
   });
 
+  // Let the event loop turn so zlib's deferred handle cleanup releases its
+  // internal buffers before sampling.
+  await new Promise(resolve => setImmediate(resolve));
+
   // Residual after decode with pixels dropped: decodePixels should not
   // grow what the instance retains.
   const afterDecode = gcUsage() - baseline;
