@@ -4,3 +4,4 @@ playground/
 .vscode
 coverage
 lib
+bench/fixtures

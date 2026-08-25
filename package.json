@@ -52,7 +52,10 @@
   "scripts": {
     "test": "yarn build && vitest run",
     "build": "rimraf ./lib && rollup -c",
-    "prettier": "prettier test/**/*.js png-node.js png.js --write"
+    "prettier": "prettier test/**/*.js png-node.js png.js --write",
+    "bench:fixtures": "node bench/generate-fixtures.js",
+    "bench": "yarn build && node bench/cpu.js",
+    "bench:mem": "yarn build && node --expose-gc bench/memory.js"
   },
   "engines": {
     "node": ">=18"
