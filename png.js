@@ -406,61 +406,52 @@ window.PNG = (function() {
       return pixels;
     }
 
-    decodePalette() {
-      const { palette } = this;
-      const { length } = palette;
-      const transparency = this.transparency.indexed || [];
-      const ret = new Uint8Array((transparency.length || 0) + length);
-      let pos = 0;
-      let c = 0;
+    _copyToImageDataIndexed(imageData, pixels) {
+      let j, k;
+      const alpha = this.transparency.indexed;
+      const data = imageData.data || imageData;
+      const { length } = pixels;
+      const palette = this.palette;
+      let i = (j = 0);
 
-      for (let i = 0; i < length; i += 3) {
-        var left;
-        ret[pos++] = palette[i];
-        ret[pos++] = palette[i + 1];
-        ret[pos++] = palette[i + 2];
-        ret[pos++] = (left = transparency[c++]) != null ? left : 255;
+      while (i < length) {
+        k = pixels[i] * 3;
+        data[j++] = palette[k++];
+        data[j++] = palette[k++];
+        data[j++] = palette[k++];
+        data[j++] = alpha ? alpha[pixels[i]] : 255;
+        i++;
       }
-
-      return ret;
     }
 
     copyToImageData(imageData, pixels) {
-      let j, k;
+      let k;
       let { colors } = this;
-      let palette = null;
       let alpha = this.hasAlphaChannel;
 
       if (this.palette.length) {
-        palette =
-          this._decodedPalette || (this._decodedPalette = this.decodePalette());
-        colors = 4;
-        alpha = true;
+        this._copyToImageDataIndexed(imageData, pixels);
+        return;
       }
 
       const data = imageData.data || imageData;
       const { length } = data;
-      const input = palette || pixels;
-      let i = (j = 0);
+      let i = (k = 0);
 
       if (colors === 1) {
         while (i < length) {
-          k = palette ? pixels[i / 4] * 4 : j;
-          const v = input[k++];
+          const v = pixels[k++];
           data[i++] = v;
           data[i++] = v;
           data[i++] = v;
-          data[i++] = alpha ? input[k++] : 255;
-          j = k;
+          data[i++] = alpha ? pixels[k++] : 255;
         }
       } else {
         while (i < length) {
-          k = palette ? pixels[i / 4] * 4 : j;
-          data[i++] = input[k++];
-          data[i++] = input[k++];
-          data[i++] = input[k++];
-          data[i++] = alpha ? input[k++] : 255;
-          j = k;
+          data[i++] = pixels[k++];
+          data[i++] = pixels[k++];
+          data[i++] = pixels[k++];
+          data[i++] = alpha ? pixels[k++] : 255;
         }
       }
     }
