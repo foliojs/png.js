@@ -12,125 +12,151 @@ const inflateSync = BROWSER ? browserInflateSync : nodeInflateSync;
 // image metadata rather than the PNG instance so callers can hand over a
 // lightweight object instead of pinning the decoder's whole state.
 function decodePixelsData(meta, data) {
-  const { width, height } = meta;
-  const pixelBytes = meta.pixelBitlength / 8;
+  const { width, height, interlaceMethod, pixelBitlength } = meta;
 
-  const pixels = new Uint8Array(width * height * pixelBytes);
+  const pixelBytes = pixelBitlength / 8;
+
+  // Per the PNG spec, filtering treats sub-byte depths as one byte per
+  // pixel, and every scanline is padded to a whole byte. Using the
+  // rounded values keeps all offsets integral (fractional pixelBytes
+  // previously produced garbage neighbor reads and undersized buffers
+  // for 1/2/4-bit images).
+  const bytesPerPixel = Math.max(1, pixelBytes);
+  const fullRowBytes = Math.ceil(pixelBytes * width);
+
+  const pixels = new Uint8Array(height * fullRowBytes);
   const { length } = data;
   let pos = 0;
 
-  function pass(x0, y0, dx, dy, singlePass = false) {
-    const w = Math.ceil((width - x0) / dx);
-    const h = Math.ceil((height - y0) / dy);
-    const scanlineLength = pixelBytes * w;
-    const buffer = singlePass ? pixels : new Uint8Array(scanlineLength * h);
-    let row = 0;
-    let c = 0;
-    while (row < h && pos < length) {
-      var byte, col, i, left, upper;
-      switch (data[pos++]) {
-        case 0: // None
-          for (i = 0; i < scanlineLength; i++) {
-            buffer[c++] = data[pos++];
-          }
-          break;
-
-        case 1: // Sub
-          for (i = 0; i < scanlineLength; i++) {
-            byte = data[pos++];
-            left = i < pixelBytes ? 0 : buffer[c - pixelBytes];
-            buffer[c++] = (byte + left) % 256;
-          }
-          break;
-
-        case 2: // Up
-          for (i = 0; i < scanlineLength; i++) {
-            byte = data[pos++];
-            col = (i - (i % pixelBytes)) / pixelBytes;
-            upper =
-              row &&
-              buffer[
-                (row - 1) * scanlineLength + col * pixelBytes + (i % pixelBytes)
-              ];
-            buffer[c++] = (upper + byte) % 256;
-          }
-          break;
-
-        case 3: // Average
-          for (i = 0; i < scanlineLength; i++) {
-            byte = data[pos++];
-            col = (i - (i % pixelBytes)) / pixelBytes;
-            left = i < pixelBytes ? 0 : buffer[c - pixelBytes];
-            upper =
-              row &&
-              buffer[
-                (row - 1) * scanlineLength + col * pixelBytes + (i % pixelBytes)
-              ];
-            buffer[c++] = (byte + Math.floor((left + upper) / 2)) % 256;
-          }
-          break;
-
-        case 4: // Paeth
-          for (i = 0; i < scanlineLength; i++) {
-            var paeth, upperLeft;
-            byte = data[pos++];
-            col = (i - (i % pixelBytes)) / pixelBytes;
-            left = i < pixelBytes ? 0 : buffer[c - pixelBytes];
-
-            if (row === 0) {
-              upper = upperLeft = 0;
-            } else {
-              upper =
-                buffer[
-                  (row - 1) * scanlineLength +
-                    col * pixelBytes +
-                    (i % pixelBytes)
-                ];
-              upperLeft =
-                col &&
-                buffer[
-                  (row - 1) * scanlineLength +
-                    (col - 1) * pixelBytes +
-                    (i % pixelBytes)
-                ];
-            }
-
-            const p = left + upper - upperLeft;
-            const pa = Math.abs(p - left);
-            const pb = Math.abs(p - upper);
-            const pc = Math.abs(p - upperLeft);
-
-            if (pa <= pb && pa <= pc) {
-              paeth = left;
-            } else if (pb <= pc) {
-              paeth = upper;
-            } else {
-              paeth = upperLeft;
-            }
-
-            buffer[c++] = (byte + paeth) % 256;
-          }
-          break;
-
-        default:
-          throw new Error(`Invalid filter algorithm: ${data[pos - 1]}`);
-      }
-
-      if (!singlePass) {
-        let pixelsPos = ((y0 + row * dy) * width + x0) * pixelBytes;
-        let bufferPos = row * scanlineLength;
-        for (i = 0; i < w; i++) {
-          for (let j = 0; j < pixelBytes; j++)
-            pixels[pixelsPos++] = buffer[bufferPos++];
-          pixelsPos += (dx - 1) * pixelBytes;
+  // Unfilters one scanline of `data` at `pos` into `row`, with `prev`
+  // the unfiltered scanline above (null for the first row of a pass).
+  // Scanlines only ever need their predecessor, so neighbor lookups
+  // are plain offsets instead of whole-buffer index arithmetic.
+  function unfilterRow(filter, rowBytes, row, prev) {
+    var i, left, upper, upperLeft;
+    switch (filter) {
+      case 0: // None
+        if (pos + rowBytes <= length) {
+          row.set(data.subarray(pos, pos + rowBytes));
+        } else {
+          // Truncated stream: missing trailing bytes read as zero,
+          // matching the filtered paths below.
+          row.fill(0);
+          row.set(data.subarray(pos, length));
         }
-      }
+        break;
 
+      case 1: // Sub
+        for (i = 0; i < rowBytes; i++) {
+          left = i < bytesPerPixel ? 0 : row[i - bytesPerPixel];
+          row[i] = (data[pos + i] + left) & 0xff;
+        }
+        break;
+
+      case 2: // Up
+        for (i = 0; i < rowBytes; i++) {
+          upper = prev ? prev[i] : 0;
+          row[i] = (data[pos + i] + upper) & 0xff;
+        }
+        break;
+
+      case 3: // Average
+        for (i = 0; i < rowBytes; i++) {
+          left = i < bytesPerPixel ? 0 : row[i - bytesPerPixel];
+          upper = prev ? prev[i] : 0;
+          row[i] = (data[pos + i] + ((left + upper) >> 1)) & 0xff;
+        }
+        break;
+
+      case 4: // Paeth
+        for (i = 0; i < rowBytes; i++) {
+          left = i < bytesPerPixel ? 0 : row[i - bytesPerPixel];
+          if (prev) {
+            upper = prev[i];
+            upperLeft = i < bytesPerPixel ? 0 : prev[i - bytesPerPixel];
+          } else {
+            upper = upperLeft = 0;
+          }
+
+          const p = left + upper - upperLeft;
+          const pa = Math.abs(p - left);
+          const pb = Math.abs(p - upper);
+          const pc = Math.abs(p - upperLeft);
+
+          const paeth =
+            pa <= pb && pa <= pc ? left : pb <= pc ? upper : upperLeft;
+          row[i] = (data[pos + i] + paeth) & 0xff;
+        }
+        break;
+
+      default:
+        throw new Error(`Invalid filter algorithm: ${filter}`);
+    }
+    pos += rowBytes;
+  }
+
+  function singlePass() {
+    const rowBytes = fullRowBytes;
+    let offset = 0;
+    let row = 0;
+    // Rows are contiguous in `pixels`, so unfilter in place using the
+    // previous row's slice as the neighbor source.
+    while (row < height && pos < length) {
+      const filter = data[pos++];
+      const cur = pixels.subarray(offset, offset + rowBytes);
+      const prev =
+        row === 0 ? null : pixels.subarray(offset - rowBytes, offset);
+      unfilterRow(filter, rowBytes, cur, prev);
+      offset += rowBytes;
       row++;
     }
   }
 
-  if (meta.interlaceMethod === 1) {
+  function interlaced() {
+    // Unfiltering only ever needs the current and previous scanline,
+    // so a two-row ring replaces the old whole-pass scratch buffers
+    // (which peaked at half the image for the final Adam7 pass).
+    const ringA = new Uint8Array(fullRowBytes);
+    const ringB = new Uint8Array(fullRowBytes);
+
+    function pass(x0, y0, dx, dy) {
+      const w = Math.ceil((width - x0) / dx);
+      const h = Math.ceil((height - y0) / dy);
+      const rowBytes = Math.ceil(pixelBytes * w);
+      let cur = ringA.subarray(0, rowBytes);
+      let spare = ringB.subarray(0, rowBytes);
+      let prev = null;
+      let row = 0;
+      while (row < h && pos < length) {
+        const filter = data[pos++];
+        unfilterRow(filter, rowBytes, cur, prev);
+
+        let pixelsPos = ((y0 + row * dy) * width + x0) * pixelBytes;
+        if (
+          dx === 1 &&
+          Number.isInteger(pixelsPos) &&
+          pixelsPos + rowBytes <= pixels.length
+        ) {
+          pixels.set(cur, pixelsPos);
+        } else {
+          // Element writes tolerate fractional or out-of-range
+          // positions (sub-byte interlaced images can't be merged
+          // byte-addressably); they drop silently instead of throwing.
+          let bufferPos = 0;
+          for (let i = 0; i < w; i++) {
+            for (let j = 0; j < pixelBytes; j++)
+              pixels[pixelsPos++] = cur[bufferPos++];
+            pixelsPos += (dx - 1) * pixelBytes;
+          }
+        }
+
+        const next = prev === null ? spare : prev;
+        prev = cur;
+        cur = next;
+        row++;
+      }
+    }
+
     /*
       1 6 4 6 2 6 4 6
       7 7 7 7 7 7 7 7
@@ -148,8 +174,12 @@ function decodePixelsData(meta, data) {
     pass(0, 2, 2, 4); // 5
     pass(1, 0, 2, 2); // 6
     pass(0, 1, 1, 2); // 7
+  }
+
+  if (interlaceMethod === 1) {
+    interlaced();
   } else {
-    pass(0, 0, 1, 1, true);
+    singlePass();
   }
 
   return pixels;

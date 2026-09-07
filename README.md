@@ -39,3 +39,15 @@ decoded pixel data before conversion to RGBA.
 
     var png = new PNG(buffer);
     var pixels = png.decodePixelsSync();
+
+## Performance
+
+Decoding runs in a fixed number of passes with no per-byte allocation: the
+compressed `IDAT` stream is concatenated exactly once, inflated without an
+extra input copy on Node (the browser build makes one copy because fflate's
+async `unzlib` detaches its input), and unfiltered scanline by scanline —
+interlaced (Adam7) images reuse a two-scanline ring buffer instead of
+per-pass scratch allocations.
+
+See [`bench/README.md`](bench/README.md) for the benchmark suite and how to
+compare two checkouts with the same harness.
