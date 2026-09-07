@@ -8,9 +8,12 @@ import {
 const inflate = BROWSER ? browserInflate : nodeInflate;
 const inflateSync = BROWSER ? browserInflateSync : nodeInflateSync;
 
-function decodePixelsData(png, data) {
-  const { width, height } = png;
-  const pixelBytes = png.pixelBitlength / 8;
+// Decodes an inflated PNG data stream into raw pixel bytes. Takes plain
+// image metadata rather than the PNG instance so callers can hand over a
+// lightweight object instead of pinning the decoder's whole state.
+function decodePixelsData(meta, data) {
+  const { width, height } = meta;
+  const pixelBytes = meta.pixelBitlength / 8;
 
   const pixels = new Uint8Array(width * height * pixelBytes);
   const { length } = data;
@@ -127,7 +130,7 @@ function decodePixelsData(png, data) {
     }
   }
 
-  if (png.interlaceMethod === 1) {
+  if (meta.interlaceMethod === 1) {
     /*
       1 6 4 6 2 6 4 6
       7 7 7 7 7 7 7 7
@@ -150,6 +153,16 @@ function decodePixelsData(png, data) {
   }
 
   return pixels;
+}
+
+// Decodes a byte array as latin1 without spreading it all onto the stack
+// (String.fromCharCode has an argument-count limit).
+function latin1(bytes) {
+  let result = '';
+  for (let i = 0; i < bytes.length; i += 0x8000) {
+    result += String.fromCharCode.apply(String, bytes.slice(i, i + 0x8000));
+  }
+  return result;
 }
 
 class PNG {
@@ -182,6 +195,12 @@ class PNG {
     this.imgData = [];
     this.transparency = {};
     this.text = {};
+
+    // IDAT payloads are collected as views into the source buffer and
+    // concatenated exactly once at IEND, so the compressed stream is never
+    // held in more than one copy.
+    const idatChunks = [];
+    let idatLength = 0;
 
     if (
       data.length < 8 ||
@@ -237,9 +256,9 @@ class PNG {
           break;
 
         case 'IDAT':
-          for (i = 0; i < chunkSize; i++) {
-            this.imgData.push(this.data[this.pos++]);
-          }
+          idatChunks.push(this.data.subarray(this.pos, this.pos + chunkSize));
+          idatLength += chunkSize;
+          this.pos += chunkSize;
           break;
 
         case 'tRNS':
@@ -275,11 +294,8 @@ class PNG {
         case 'tEXt':
           var text = this.read(chunkSize);
           var index = text.indexOf(0);
-          var key = String.fromCharCode.apply(String, text.slice(0, index));
-          this.text[key] = String.fromCharCode.apply(
-            String,
-            text.slice(index + 1)
-          );
+          var key = latin1(text.slice(0, index));
+          this.text[key] = latin1(text.slice(index + 1));
           break;
 
         case 'IEND':
@@ -309,7 +325,17 @@ class PNG {
               break;
           }
 
-          this.imgData = new Uint8Array(this.imgData);
+          this.imgData = new Uint8Array(idatLength);
+          var offset = 0;
+          for (i = 0; i < idatChunks.length; i++) {
+            this.imgData.set(idatChunks[i], offset);
+            offset += idatChunks[i].length;
+          }
+
+          // Everything kept past construction (imgData, palette,
+          // transparency, text) is copied out of the source buffer, so
+          // release it rather than pinning the whole file on the instance.
+          this.data = null;
           return;
           break;
 
@@ -323,10 +349,10 @@ class PNG {
   }
 
   read(bytes) {
-    const result = new Array(bytes);
-    for (let i = 0; i < bytes; i++) {
-      result[i] = this.data[this.pos++];
-    }
+    // Array.from copies, so the result never pins the source buffer.
+    // These stay plain arrays: consumers index and push into them.
+    const result = Array.from(this.data.subarray(this.pos, this.pos + bytes));
+    this.pos += bytes;
     return result;
   }
 
@@ -339,17 +365,34 @@ class PNG {
   }
 
   decodePixels(fn) {
-    return inflate(new Uint8Array(this.imgData), (err, data) => {
+    // fflate's async unzlib transfers its input buffer to a worker,
+    // detaching it, so the browser build must hand over a throwaway copy.
+    // Node's zlib.inflate only reads the buffer.
+    const input = BROWSER ? this.imgData.slice() : this.imgData;
+
+    // The callback must reference only this plain metadata, never `this`, so
+    // a caller that drops the instance doesn't keep it (and everything it
+    // retains) alive through the async inflate.
+    const meta = {
+      width: this.width,
+      height: this.height,
+      interlaceMethod: this.interlaceMethod,
+      pixelBitlength: this.pixelBitlength
+    };
+
+    return inflate(input, (err, data) => {
       if (err) {
         throw err;
       }
 
-      return fn(decodePixelsData(this, data));
+      return fn(decodePixelsData(meta, data));
     });
   }
 
   decodePixelsSync() {
-    return decodePixelsData(this, inflateSync(new Uint8Array(this.imgData)));
+    // Both sync inflaters only read their input, and `imgData` is already a
+    // Uint8Array owned by this instance, so no defensive copy is needed.
+    return decodePixelsData(this, inflateSync(this.imgData));
   }
 
   decodePalette() {
