@@ -196,13 +196,24 @@ function latin1(bytes) {
 }
 
 class PNG {
-  static decode(path, fn) {
+  static decode(path, fn, onError) {
     if (BROWSER) {
       throw new Error('PNG.decode not available in browser build');
     } else {
       return fs.readFile(path, function(err, file) {
-        const png = new PNG(file);
-        return png.decode(pixels => fn(pixels));
+        let png;
+        try {
+          if (err) {
+            throw err;
+          }
+          png = new PNG(file);
+        } catch (error) {
+          if (onError) {
+            return onError(error);
+          }
+          throw error;
+        }
+        return png.decode(pixels => fn(pixels), onError);
       });
     }
   }
@@ -394,7 +405,7 @@ class PNG {
     return (b1 | b2 | b3 | b4) >>> 0;
   }
 
-  decodePixels(fn) {
+  decodePixels(fn, onError) {
     // fflate's async unzlib transfers its input buffer to a worker,
     // detaching it, so the browser build must hand over a throwaway copy.
     // Node's zlib.inflate only reads the buffer.
@@ -411,11 +422,24 @@ class PNG {
     };
 
     return inflate(input, (err, data) => {
-      if (err) {
-        throw err;
+      let pixels;
+      try {
+        if (err) {
+          throw err;
+        }
+        pixels = decodePixelsData(meta, data);
+      } catch (error) {
+        // Thrown from here, the error reaches no caller's try/catch and takes
+        // the process down, so a caller needs a way to receive it.
+        if (onError) {
+          return onError(error);
+        }
+        throw error;
       }
 
-      return fn(decodePixelsData(meta, data));
+      // Outside the try, so an error thrown by the caller's own callback
+      // isn't reported to it as a decoding error.
+      return fn(pixels);
     });
   }
 
@@ -484,12 +508,12 @@ class PNG {
     }
   }
 
-  decode(fn) {
+  decode(fn, onError) {
     const ret = new Uint8Array(this.width * this.height * 4);
     return this.decodePixels(pixels => {
       this.copyToImageData(ret, pixels);
       return fn(ret);
-    });
+    }, onError);
   }
 }
 

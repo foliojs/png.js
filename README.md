@@ -40,6 +40,21 @@ decoded pixel data before conversion to RGBA.
     var png = new PNG(buffer);
     var pixels = png.decodePixelsSync();
 
+### Handling errors
+
+`PNG.decode`, `png.decode` and `png.decodePixels` decode asynchronously, so a `try`/`catch` around the call cannot catch
+an error from a corrupt image. Pass an error callback as the last argument to receive it. Without one, the error is
+thrown as an uncaught exception, which ends the process unless it is handled.
+
+    png.decodePixels(
+        function(pixels) {
+            // use the pixels
+        },
+        function(error) {
+            // the image could not be decoded, and the first callback will not be called
+        }
+    );
+
 ## Performance
 
 Decoding runs in a fixed number of passes with no per-byte allocation: the
