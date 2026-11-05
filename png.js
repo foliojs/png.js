@@ -38,24 +38,38 @@ window.PNG = (function () {
   };
 
   class PNG {
-    static load(url, canvas, callback) {
-      if (typeof canvas === 'function') {
-        callback = canvas;
-      }
-
-      const xhr = new XMLHttpRequest();
-      xhr.open('GET', url, true);
-      xhr.responseType = 'arraybuffer';
-      xhr.onload = () => {
-        const data = new Uint8Array(xhr.response || xhr.mozResponseArrayBuffer);
-        const png = new PNG(data);
-        if (typeof (canvas && canvas.getContext) === 'function') {
-          png.render(canvas);
-        }
-        return typeof callback === 'function' ? callback(png) : undefined;
-      };
-
-      return xhr.send(null);
+    static load(url, canvas) {
+      return new Promise((resolve, reject) => {
+        const xhr = new XMLHttpRequest();
+        xhr.open('GET', url, true);
+        xhr.responseType = 'arraybuffer';
+        xhr.onload = () => {
+          if (xhr.status < 200 || xhr.status >= 300) {
+            reject(new Error(`Failed to load PNG: HTTP ${xhr.status}`));
+            return;
+          }
+          try {
+            const response = xhr.response || xhr.mozResponseArrayBuffer;
+            if (!response || response.byteLength === 0) {
+              throw new Error('Failed to load PNG: empty response');
+            }
+            const png = new PNG(new Uint8Array(response));
+            if (typeof (canvas && canvas.getContext) === 'function') {
+              png.render(canvas);
+            }
+            resolve(png);
+          } catch (err) {
+            reject(err);
+          }
+        };
+        xhr.onerror = () =>
+          reject(new Error('Failed to load PNG: network error'));
+        xhr.onabort = () =>
+          reject(new Error('Failed to load PNG: request aborted'));
+        xhr.ontimeout = () =>
+          reject(new Error('Failed to load PNG: request timed out'));
+        xhr.send(null);
+      });
     }
 
     constructor(data1) {

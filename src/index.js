@@ -196,24 +196,12 @@ function latin1(bytes) {
 }
 
 class PNG {
-  static decode(path, fn) {
+  static async decode(path) {
     if (BROWSER) {
       throw new Error('PNG.decode not available in browser build');
     } else {
-      return fs.readFile(path, function(err, file) {
-        if (err) {
-          return fn(err);
-        }
-
-        let png;
-        try {
-          png = new PNG(file);
-        } catch (err) {
-          return fn(err);
-        }
-
-        return png.decode(fn);
-      });
+      const file = await fs.promises.readFile(path);
+      return new PNG(file).decode();
     }
   }
 
@@ -404,13 +392,13 @@ class PNG {
     return (b1 | b2 | b3 | b4) >>> 0;
   }
 
-  decodePixels(fn) {
+  async decodePixels() {
     // fflate's async unzlib transfers its input buffer to a worker,
     // detaching it, so the browser build must hand over a throwaway copy.
     // Node's zlib.inflate only reads the buffer.
     const input = BROWSER ? this.imgData.slice() : this.imgData;
 
-    // The callback must reference only this plain metadata, never `this`, so
+    // The inflate callback must reference only this plain metadata, never `this`, so
     // a caller that drops the instance doesn't keep it (and everything it
     // retains) alive through the async inflate.
     const meta = {
@@ -420,19 +408,19 @@ class PNG {
       pixelBitlength: this.pixelBitlength
     };
 
-    return inflate(input, (err, data) => {
-      if (err) {
-        return fn(err);
-      }
+    return new Promise((resolve, reject) => {
+      inflate(input, (err, data) => {
+        if (err) {
+          reject(err);
+          return;
+        }
 
-      let pixels;
-      try {
-        pixels = decodePixelsData(meta, data);
-      } catch (err) {
-        return fn(err);
-      }
-
-      return fn(null, pixels);
+        try {
+          resolve(decodePixelsData(meta, data));
+        } catch (err) {
+          reject(err);
+        }
+      });
     });
   }
 
@@ -501,22 +489,11 @@ class PNG {
     }
   }
 
-  decode(fn) {
-    let ret;
-    try {
-      ret = new Uint8Array(this.width * this.height * 4);
-    } catch (err) {
-      return fn(err);
-    }
-
-    return this.decodePixels((err, pixels) => {
-      if (err) {
-        return fn(err);
-      }
-
-      this.copyToImageData(ret, pixels);
-      return fn(null, ret);
-    });
+  async decode() {
+    const ret = new Uint8Array(this.width * this.height * 4);
+    const pixels = await this.decodePixels();
+    this.copyToImageData(ret, pixels);
+    return ret;
   }
 }
 

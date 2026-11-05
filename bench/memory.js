@@ -10,6 +10,7 @@ import { spawnSync } from 'child_process';
 import {
   loadPNG,
   benchFixtures,
+  decodePixels,
   fixturesDir,
   repoDir,
   mb,
@@ -40,15 +41,23 @@ function peakRSS(file, decode) {
     const PNG = require(${JSON.stringify(libPath)});
     const buffer = require('fs').readFileSync(${JSON.stringify(file)});
     const mode = ${JSON.stringify(decode)};
-    const done = err => {
-      if (err) throw err;
+    const done = () => {
       console.log(process.resourceUsage().maxRSS);
     };
     if (mode === 'read') done();
     else {
       const png = new PNG(buffer);
       if (mode === 'construct') done();
-      else png.decodePixels(done);
+      else {
+        const result = png.decodePixels();
+        if (!result || typeof result.then !== 'function') {
+          throw new Error('Benchmark requires a Promise-based decodePixels()');
+        }
+        result.then(done).catch(err => {
+          console.error(err);
+          process.exitCode = 1;
+        });
+      }
     }
   `;
   const res = spawnSync(process.execPath, ['-e', script], {
@@ -78,16 +87,7 @@ async function measure(name, file, readBuffer) {
   buffer = null;
   const retainedAfterDrop = gcUsage() - baseline;
 
-  let pixelBytes = 0;
-  await new Promise((resolve, reject) => {
-    png.decodePixels((err, pixels) => {
-      if (err) {
-        return reject(err);
-      }
-      pixelBytes = pixels.length;
-      resolve();
-    });
-  });
+  const pixelBytes = (await decodePixels(png)).length;
 
   // Let the event loop turn so zlib's deferred handle cleanup releases its
   // internal buffers before sampling.

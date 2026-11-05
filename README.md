@@ -4,17 +4,27 @@ A PNG decoder in JS for the canvas element or Node.js.
 
 ## Browser Usage
 
-Simply include png.js and zlib.js on your HTML page, create a canvas element, and call PNG.load to load an image.
+Include png.js and zlib.js on your HTML page, create a canvas element, and call
+`PNG.load` to load and render an image. It returns a Promise resolving to the
+PNG instance after rendering; omit the canvas to load without rendering.
 
     <canvas></canvas>
     <script src="zlib.js"></script>
     <script src="png.js"></script>
-    <script>
-        var canvas = document.getElementsByTagName('canvas')[0];
-        PNG.load('some.png', canvas);
+    <script type="module">
+        try {
+            const canvas = document.getElementsByTagName('canvas')[0];
+            const png = await window.PNG.load('some.png', canvas);
+            console.log('Loaded PNG:', png.width, png.height);
+        } catch (err) {
+            console.error('Could not load PNG:', err);
+        }
     </script>
 
-The source code for the browser version resides in `png.js` and also supports loading and displaying animated PNGs.
+The standalone browser version resides in `png.js`, exposes `window.PNG`, and
+also supports loading and displaying animated PNGs. Its `PNG.load` rejects on non-2xx HTTP responses,
+network errors, aborted requests, and parsing or rendering errors. Serve the
+page over HTTP; local-file requests with status 0 are rejected.
 
 ## Node.js Usage
 
@@ -22,26 +32,32 @@ Install the module using npm
 
     sudo npm install png-js
 
-Require the module and decode a PNG
+Import the module and decode a PNG. Run this example as an ES module, for
+example in an `.mjs` file or in a package with `"type": "module"`.
 
-    var PNG = require('png-js');
-    PNG.decode('some.png', function(err, pixels) {
-        if (err) {
-            console.error('Could not decode PNG:', err);
-            return;
-        }
-        // pixels is a 1d array (in rgba order) of decoded pixel data
-    });
+    import PNG from 'png-js';
 
-All asynchronous decoding methods (`PNG.decode`, `png.decode`, and `png.decodePixels`) use error-first callbacks:
-`callback(null, pixels)` on success, or `callback(err)` on failure. Errors include file-read failures such as `ENOENT`,
-invalid PNG data, and decompression failures. Update existing one-argument callbacks to accept `(err, pixels)`.
+    try {
+        const pixels = await PNG.decode('some.png');
+        // pixels is a 1d Uint8Array in RGBA order
+    } catch (err) {
+        console.error('Could not decode PNG:', err);
+    }
+
+The packaged asynchronous methods `PNG.decode(path)`, `png.decode()`, and
+`png.decodePixels()` return Promises. The first two resolve to RGBA pixel
+data as a `Uint8Array`; `decodePixels()` resolves to raw pixel data before
+RGBA conversion. They reject on errors, including file-read failures such as
+`ENOENT`, invalid PNG data, and decompression failures. The packaged browser
+build supports instance decoding but rejects `PNG.decode(path)`.
 
 You can also call `PNG.load` if you want to load the PNG (but not decode the pixels) synchronously. If you already
 have the PNG data in a buffer, simply use `new PNG(buffer)`. In both of these cases, you need to call `png.decode`
-yourself which passes your callback `(err, pixels)`, with decoded RGBA pixels as a `Uint8Array`. If you already have
-a buffer you want the pixels copied to, call `copyToImageData` with your buffer and the decoded pixels as returned
-from `decodePixels`.
+yourself and await the decoded RGBA pixels. This synchronous Node.js
+`PNG.load` is distinct from the standalone browser's asynchronous `PNG.load`.
+If you already have a buffer you want the pixels copied to, call
+`copyToImageData` with your buffer and the raw pixels resolved by
+`decodePixels()`.
 
 For synchronous pixel decoding, call `decodePixelsSync` on a PNG instance. It returns a `Uint8Array` containing the
 decoded pixel data before conversion to RGBA.

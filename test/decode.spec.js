@@ -1,8 +1,6 @@
 import fs from 'fs';
 import os from 'os';
 import path from 'path';
-import { spawnSync } from 'child_process';
-import { setImmediate } from 'timers';
 import { deflateSync } from 'zlib';
 import PNGNode from '../lib/png-js.cjs';
 import PNGBrowser from '../lib/png-js.browser.cjs';
@@ -62,145 +60,104 @@ afterAll(() => {
   fs.rmSync(directory, { recursive: true, force: true });
 });
 
-async function callbackResult(start) {
-  const calls = [];
-  await new Promise((resolve) => {
-    start((...args) => {
-      calls.push(args);
-      resolve();
+describe('PNG.decode', () => {
+  test('resolves to RGBA pixels', async () => {
+    const result = PNGNode.decode(filePath('valid'));
+    expect(result).toBeInstanceOf(Promise);
+    const pixels = await result;
+    expect(pixels).toBeInstanceOf(Uint8Array);
+    expect(Array.from(pixels)).toEqual([12, 34, 56, 255]);
+  });
+
+  test('rejects with the filesystem error for a missing file', async () => {
+    const missing = filePath('missing');
+    await expect(PNGNode.decode(missing)).rejects.toMatchObject({
+      code: 'ENOENT',
+      path: missing,
     });
   });
-  // Allow an accidental second callback in the same operation to run.
-  await new Promise((resolve) => setImmediate(resolve));
-  expect(calls).toHaveLength(1);
-  return calls[0];
-}
 
-function expectCallbackException(modulePath, method, file) {
-  // A subprocess isolates deliberately uncaught consumer exceptions from Vitest.
-  const result = spawnSync(
-    process.execPath,
-    [
-      '-e',
-      `
-        const assert = require('node:assert/strict');
-        const fs = require('node:fs');
-        const PNG = require(${JSON.stringify(modulePath)});
-        const expected = new Error('consumer callback failed');
-        let calls = 0;
-        let escaped = false;
-        process.on('uncaughtException', err => {
-          assert.strictEqual(err, expected);
-          assert.strictEqual(calls, 1);
-          escaped = true;
-          console.log('consumer exception propagated once');
-        });
-        process.on('beforeExit', () => {
-          assert.strictEqual(escaped, true);
-          assert.strictEqual(calls, 1);
-        });
-        const callback = () => {
-          calls++;
-          throw expected;
-        };
-        const file = ${JSON.stringify(file)};
-        const method = ${JSON.stringify(method)};
-        if (method === 'static') PNG.decode(file, callback);
-        else new PNG(fs.readFileSync(file))[method](callback);
-      `,
-    ],
-    { encoding: 'utf8', timeout: 5000 },
-  );
-  expect(result.error).toBeUndefined();
-  expect(result.stdout).toBe('consumer exception propagated once\n');
-  expect(result.stderr).toBe('');
-  expect(result.status).toBe(0);
-}
-
-describe('PNG.decode', () => {
-  test('returns a null error and RGBA pixels on success', async () => {
-    const args = await callbackResult((callback) =>
-      PNGNode.decode(filePath('valid'), callback),
-    );
-    expect(args).toHaveLength(2);
-    expect(args[0]).toBeNull();
-    expect(Array.from(args[1])).toEqual([12, 34, 56, 255]);
-  });
-
-  test('returns the filesystem error for a missing file', async () => {
-    const missing = filePath('missing');
-    const args = await callbackResult((callback) =>
-      PNGNode.decode(missing, callback),
-    );
-    expect(args).toHaveLength(1);
-    expect(args[0]).toMatchObject({ code: 'ENOENT', path: missing });
-  });
-
-  test('returns an allocation error for oversized PNG dimensions', async () => {
-    const args = await callbackResult((callback) =>
-      PNGNode.decode(filePath('oversized'), callback),
-    );
-    expect(args).toHaveLength(1);
-    expect(args[0].name).toBe('RangeError');
+  test('rejects allocation errors', async () => {
+    await expect(PNGNode.decode(filePath('oversized'))).rejects.toMatchObject({
+      name: 'RangeError',
+    });
   });
 
   test.each([
     ['signature', /Invalid PNG signature/],
     ['truncated', /Incomplete or corrupt PNG file/],
     ...failures.map(([name, , message]) => [name, message]),
-  ])('returns errors for %s data', async (name, message) => {
-    const args = await callbackResult((callback) =>
-      PNGNode.decode(filePath(name), callback),
-    );
-    expect(args).toHaveLength(1);
-    expect(args[0].message).toMatch(message);
+  ])('rejects errors for %s data', async (name, message) => {
+    await expect(PNGNode.decode(filePath(name))).rejects.toThrow(message);
   });
 
-  test.each(['valid', 'missing', 'signature', 'invalid-filter'])(
-    'propagates consumer exceptions for %s data without retrying',
-    (name) => {
-      expectCallbackException('./lib/png-js.cjs', 'static', filePath(name));
-    },
-  );
+  test('rejects when called in the packaged browser build', async () => {
+    await expect(PNGBrowser.decode('image.png')).rejects.toThrow(
+      'PNG.decode not available in browser build',
+    );
+  });
 });
 
 describe.each([
-  ['node', PNGNode, './lib/png-js.cjs'],
-  ['packaged browser', PNGBrowser, './lib/png-js.browser.cjs'],
-])('%s instance decoding', (_name, Ctor, modulePath) => {
+  ['node', PNGNode],
+  ['packaged browser', PNGBrowser],
+])('%s instance decoding', (_name, Ctor) => {
   describe.each(['decode', 'decodePixels'])('%s', (method) => {
-    test('returns a null error and unchanged pixels on success', async () => {
+    test('resolves to unchanged pixels', async () => {
       const png = new Ctor(valid);
-      const args = await callbackResult((callback) => png[method](callback));
-      expect(args).toHaveLength(2);
-      expect(args[0]).toBeNull();
-      expect(Array.from(args[1])).toEqual(
+      const result = png[method]();
+      expect(result).toBeInstanceOf(Promise);
+      const pixels = await result;
+      expect(pixels).toBeInstanceOf(Uint8Array);
+      expect(Array.from(pixels)).toEqual(
         method === 'decode' ? [12, 34, 56, 255] : [12, 34, 56],
       );
     });
 
     test.each(failures)(
-      'returns errors for %s data',
+      'rejects errors for %s data',
       async (_name, data, message) => {
         const png = new Ctor(data);
-        const args = await callbackResult((callback) => png[method](callback));
-        expect(args).toHaveLength(1);
-        expect(args[0].message).toMatch(message);
+        await expect(png[method]()).rejects.toThrow(message);
       },
     );
 
-    test('returns an allocation error for oversized PNG dimensions', async () => {
+    test('rejects allocation errors', async () => {
       const png = new Ctor(oversized);
-      const args = await callbackResult((callback) => png[method](callback));
-      expect(args).toHaveLength(1);
-      expect(args[0].name).toBe('RangeError');
+      await expect(png[method]()).rejects.toMatchObject({ name: 'RangeError' });
     });
 
-    test.each(['valid', 'corrupt', 'invalid-filter'])(
-      'propagates consumer exceptions for %s data without retrying',
-      (name) => {
-        expectCallbackException(modulePath, method, filePath(name));
-      },
-    );
+    test('supports repeated and concurrent decoding', async () => {
+      const png = new Ctor(valid);
+      const expected = method === 'decode' ? [12, 34, 56, 255] : [12, 34, 56];
+      const results = await Promise.all([png[method](), png[method]()]);
+      results.push(await png[method]());
+      for (const pixels of results)
+        expect(Array.from(pixels)).toEqual(expected);
+    });
+
+    test('propagates errors thrown by Promise consumers', async () => {
+      const error = new Error('consumer failed');
+      await expect(
+        new Ctor(valid)[method]().then(() => {
+          throw error;
+        }),
+      ).rejects.toBe(error);
+    });
+  });
+
+  test('rejects conversion errors', async () => {
+    const png = new Ctor(valid);
+    const error = new Error('conversion failed');
+    png.copyToImageData = () => {
+      throw error;
+    };
+    await expect(png.decode()).rejects.toBe(error);
+  });
+
+  test('rejects setup errors', async () => {
+    const png = new Ctor(valid);
+    png.imgData = null;
+    await expect(png.decodePixels()).rejects.toThrow();
   });
 });
