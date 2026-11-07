@@ -7,8 +7,8 @@
   "main": "./lib/png-js.cjs",
   "module": "./lib/png-js.js",
   "browser": {
-    "./lib/png-js.js": "./lib/png-js.browser.js",
-    "./lib/png-js.cjs": "./lib/png-js.browser.cjs"
+    "./lib/png-js.cjs": "./lib/png-js.browser.cjs",
+    "./lib/png-js.js": "./lib/png-js.browser.js"
   },
   "exports": {
     ".": {
@@ -37,28 +37,30 @@
   },
   "bugs": "http://github.com/devongovett/png.js/issues",
   "dependencies": {
-    "fflate": "^0.8.2"
+    "fflate": "^0.8.3"
   },
   "devDependencies": {
-    "@rollup/plugin-replace": "5.0.0",
-    "jsdom": "24.1.3",
-    "prettier": "1.16.4",
-    "rimraf": "2.6.3",
-    "rollup": "4.9.0",
+    "@rollup/plugin-replace": "6.0.3",
+    "jsdom": "30.1.3",
+    "prettier": "3.9.10",
+    "rimraf": "6.1.3",
+    "rollup": "4.65.0",
     "rollup-plugin-ignore": "1.0.10",
-    "vite": "8.1.5",
-    "vitest": "4.1.10"
+    "vite": "8.3.5",
+    "vitest": "5.0.5"
   },
   "scripts": {
     "test": "yarn build && vitest run",
     "build": "rimraf ./lib && rollup -c",
     "prepack": "yarn build",
-    "prettier": "prettier test/**/*.js png-node.js png.js --write",
+    "format": "prettier --write test/**/*.js png.js",
+    "format:check": "prettier --check test/**/*.js png.js",
     "bench:fixtures": "node bench/generate-fixtures.js",
     "bench": "yarn build && node bench/cpu.js",
     "bench:mem": "yarn build && node --expose-gc bench/memory.js"
   },
   "engines": {
     "node": ">=18"
-  }
+  },
+  "packageManager": "yarn@4.18.1"
 }

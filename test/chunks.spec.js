@@ -46,7 +46,7 @@ function withTextChunk(payload) {
   return Buffer.concat([
     buffer.subarray(0, idat),
     chunk('tEXt', payload),
-    buffer.subarray(idat)
+    buffer.subarray(idat),
   ]);
 }
 
@@ -66,7 +66,7 @@ function splitIdat(splitPoints) {
   return Buffer.concat([
     buffer.subarray(0, idat),
     ...chunks,
-    buffer.subarray(idat + 12 + size)
+    buffer.subarray(idat + 12 + size),
   ]);
 }
 
@@ -81,7 +81,7 @@ describe('multiple IDAT chunks', () => {
     const split = new PNGNode(splitIdat([idatSize >> 1]));
     expect(Buffer.from(split.imgData)).toEqual(Buffer.from(original.imgData));
     expect(Buffer.from(split.decodePixelsSync())).toEqual(
-      Buffer.from(original.decodePixelsSync())
+      Buffer.from(original.decodePixelsSync()),
     );
   });
 
@@ -90,7 +90,7 @@ describe('multiple IDAT chunks', () => {
     const split = new PNGNode(splitIdat([1, 1, idatSize >> 1]));
     expect(Buffer.from(split.imgData)).toEqual(Buffer.from(original.imgData));
     expect(Buffer.from(split.decodePixelsSync())).toEqual(
-      Buffer.from(original.decodePixelsSync())
+      Buffer.from(original.decodePixelsSync()),
     );
   });
 
@@ -99,7 +99,7 @@ describe('multiple IDAT chunks', () => {
     const split = new PNG(splitIdat([idatSize >> 1]));
     expect(Buffer.from(split.imgData)).toEqual(Buffer.from(original.imgData));
     expect(Buffer.from(split.decodePixels())).toEqual(
-      Buffer.from(original.decodePixels())
+      Buffer.from(original.decodePixels()),
     );
   });
 });
@@ -113,7 +113,7 @@ describe('tEXt chunks', () => {
     // The inserted chunk must not disturb the surrounding parse.
     expect(png.width).toBeGreaterThan(0);
     expect(Buffer.from(png.decodePixelsSync())).toEqual(
-      Buffer.from(new PNGNode(validBuffer()).decodePixelsSync())
+      Buffer.from(new PNGNode(validBuffer()).decodePixelsSync()),
     );
   });
 
@@ -136,7 +136,7 @@ describe('tEXt chunks', () => {
       expected += String.fromCharCode(32 + (i % 95));
     }
     const png = new PNGNode(
-      withTextChunk(Buffer.concat([Buffer.from('Comment\0'), value]))
+      withTextChunk(Buffer.concat([Buffer.from('Comment\0'), value])),
     );
     expect(png.text.Comment).toHaveLength(length);
     expect(png.text.Comment).toBe(expected);
