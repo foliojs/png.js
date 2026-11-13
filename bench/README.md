@@ -25,6 +25,10 @@ The library under test is selected with `PNG_LIB` (defaults to this
 checkout's `lib/png-js.cjs`), so a baseline can be measured with the same
 harness:
 
+The harness requires Promise-based `decodePixels()` implementations. To
+benchmark older callback-only versions, use a compatible harness from that
+version instead; the current harness does not adapt the old API.
+
 ```sh
 git worktree add ../png.js-baseline <base-commit>
 (cd ../png.js-baseline && yarn && yarn build)

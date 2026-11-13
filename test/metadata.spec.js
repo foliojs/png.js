@@ -11,13 +11,13 @@ function getMetaData(Ctor, fileName) {
 
 describe('metadata', () => {
   describe('node', () => {
-    test.each(files)('%s', fileName => {
+    test.each(files)('%s', (fileName) => {
       expect(getMetaData(PNGNode, fileName)).toMatchSnapshot();
     });
   });
 
   describe('browser', () => {
-    test.each(files)('%s', fileName => {
+    test.each(files)('%s', (fileName) => {
       expect(getMetaData(PNG, fileName)).toMatchSnapshot();
     });
   });

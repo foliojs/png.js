@@ -43,7 +43,7 @@ describe('malformed input', () => {
     const buffer = validBuffer();
     const idat = findChunk(buffer, 'IDAT');
     expect(() => new PNGNode(buffer.subarray(0, idat + 12))).toThrow(
-      'Incomplete or corrupt PNG file'
+      'Incomplete or corrupt PNG file',
     );
   });
 
@@ -58,7 +58,7 @@ describe('malformed input', () => {
     const ihdr = findChunk(buffer, 'IHDR');
     buffer.writeUInt32BE(0, ihdr + 8); // width field inside IHDR payload
     expect(() => new PNGNode(buffer)).toThrow(
-      'Invalid PNG dimensions: width and height must be nonzero'
+      'Invalid PNG dimensions: width and height must be nonzero',
     );
   });
 

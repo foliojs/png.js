@@ -18,7 +18,7 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-window.PNG = (function() {
+window.PNG = (function () {
   let APNG_DISPOSE_OP_NONE = 0;
   let APNG_DISPOSE_OP_BACKGROUND = 1;
   let APNG_DISPOSE_OP_PREVIOUS = 2;
@@ -26,7 +26,7 @@ window.PNG = (function() {
   let APNG_BLEND_OP_OVER = 1;
   let scratchCanvas = document.createElement('canvas');
   let scratchCtx = scratchCanvas.getContext('2d');
-  let makeImage = function(imageData) {
+  let makeImage = function (imageData) {
     scratchCtx.width = imageData.width;
     scratchCtx.height = imageData.height;
     scratchCtx.clearRect(0, 0, imageData.width, imageData.height);
@@ -38,24 +38,38 @@ window.PNG = (function() {
   };
 
   class PNG {
-    static load(url, canvas, callback) {
-      if (typeof canvas === 'function') {
-        callback = canvas;
-      }
-
-      const xhr = new XMLHttpRequest();
-      xhr.open('GET', url, true);
-      xhr.responseType = 'arraybuffer';
-      xhr.onload = () => {
-        const data = new Uint8Array(xhr.response || xhr.mozResponseArrayBuffer);
-        const png = new PNG(data);
-        if (typeof (canvas && canvas.getContext) === 'function') {
-          png.render(canvas);
-        }
-        return typeof callback === 'function' ? callback(png) : undefined;
-      };
-
-      return xhr.send(null);
+    static load(url, canvas) {
+      return new Promise((resolve, reject) => {
+        const xhr = new XMLHttpRequest();
+        xhr.open('GET', url, true);
+        xhr.responseType = 'arraybuffer';
+        xhr.onload = () => {
+          if (xhr.status < 200 || xhr.status >= 300) {
+            reject(new Error(`Failed to load PNG: HTTP ${xhr.status}`));
+            return;
+          }
+          try {
+            const response = xhr.response || xhr.mozResponseArrayBuffer;
+            if (!response || response.byteLength === 0) {
+              throw new Error('Failed to load PNG: empty response');
+            }
+            const png = new PNG(new Uint8Array(response));
+            if (typeof (canvas && canvas.getContext) === 'function') {
+              png.render(canvas);
+            }
+            resolve(png);
+          } catch (err) {
+            reject(err);
+          }
+        };
+        xhr.onerror = () =>
+          reject(new Error('Failed to load PNG: network error'));
+        xhr.onabort = () =>
+          reject(new Error('Failed to load PNG: request aborted'));
+        xhr.ontimeout = () =>
+          reject(new Error('Failed to load PNG: request timed out'));
+        xhr.send(null);
+      });
     }
 
     constructor(data1) {
@@ -95,7 +109,7 @@ window.PNG = (function() {
             this.animation = {
               numFrames: this.readUInt32(),
               numPlays: this.readUInt32() || Infinity,
-              frames: []
+              frames: [],
             };
             break;
 
@@ -113,7 +127,7 @@ window.PNG = (function() {
               width: this.readUInt32(),
               height: this.readUInt32(),
               xOffset: this.readUInt32(),
-              yOffset: this.readUInt32()
+              yOffset: this.readUInt32(),
             };
 
             var delayNum = this.readUInt16();
@@ -174,7 +188,7 @@ window.PNG = (function() {
             var key = String.fromCharCode.apply(String, text.slice(0, index));
             this.text[key] = String.fromCharCode.apply(
               String,
-              text.slice(index + 1)
+              text.slice(index + 1),
             );
             break;
 

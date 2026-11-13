@@ -5,13 +5,10 @@ const files = fs.readdirSync('test/images');
 
 async function getPixels(Ctor, fileName) {
   const image = new Ctor(fs.readFileSync(`test/images/${fileName}`));
-  return new Promise(resolve => {
-    Ctor === PNGNode
-      ? image.decodePixels(pixels =>
-          resolve(Buffer.isBuffer(pixels) ? pixels : Buffer.from(pixels))
-        )
-      : resolve(image.decodePixels());
-  });
+  const pixels = await image.decodePixels();
+  return Ctor === PNGNode && !Buffer.isBuffer(pixels)
+    ? Buffer.from(pixels)
+    : pixels;
 }
 
 function getPixelsSync(Ctor, fileName) {
@@ -22,23 +19,23 @@ function getPixelsSync(Ctor, fileName) {
 
 describe('pixels', () => {
   describe('node', () => {
-    test.each(files)('%s', async fileName => {
+    test.each(files)('%s', async (fileName) => {
       const pixels = await getPixels(PNGNode, fileName);
       expect(pixels).toMatchSnapshot();
     });
   });
 
   describe('browser', () => {
-    test.each(files)('%s', async fileName => {
+    test.each(files)('%s', async (fileName) => {
       const pixels = await getPixels(PNG, fileName);
       expect(pixels).toMatchSnapshot();
     });
   });
 
   describe('sync', () => {
-    test.each(files)('node %s', async fileName => {
+    test.each(files)('node %s', async (fileName) => {
       expect(getPixelsSync(PNGNode, fileName)).toEqual(
-        await getPixels(PNGNode, fileName)
+        await getPixels(PNGNode, fileName),
       );
     });
   });

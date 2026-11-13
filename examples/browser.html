@@ -33,7 +33,7 @@
         if (!file) {
           return
         }
-        PNG.load(`../images/${file}`, document.getElementById('png-canvas'))
+        PNG.load(`../images/${file}`, document.getElementById('png-canvas')).catch(console.error)
       })
     </script>
 </body>

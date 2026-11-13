@@ -11,13 +11,13 @@ function getImgData(Ctor, fileName, wrap) {
 
 describe('imgData', () => {
   describe('node', () => {
-    test.each(files)('%s', fileName => {
+    test.each(files)('%s', (fileName) => {
       expect(getImgData(PNGNode, fileName, true)).toMatchSnapshot();
     });
   });
 
   describe('browser', () => {
-    test.each(files)('%s', fileName => {
+    test.each(files)('%s', (fileName) => {
       expect(getImgData(PNG, fileName)).toMatchSnapshot();
     });
   });
