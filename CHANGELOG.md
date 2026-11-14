@@ -1,5 +1,11 @@
 ## png.js changelog
 
+### Unreleased
+
+#### Fixed
+
+- Decode 16-bit grayscale, RGB, and alpha samples into 8-bit RGBA pixels in the packaged and standalone browser decoders (#13).
+
 ### [3.0.0] - 07-11-2026
 
 #### Breaking changes

@@ -455,7 +455,7 @@ class PNG {
     let palette = null;
     let alpha = this.hasAlphaChannel;
 
-    if (this.palette.length) {
+    if (this.colorType === 3) {
       palette =
         this._decodedPalette || (this._decodedPalette = this.decodePalette());
       colors = 4;
@@ -465,25 +465,34 @@ class PNG {
     const data = imageData.data || imageData;
     const { length } = data;
     const input = palette || pixels;
+    // PNG stores 16-bit samples most-significant byte first. Keep that byte
+    // when reducing to the 8-bit channels used by ImageData.
+    const sampleBytes = this.bits === 16 ? 2 : 1;
     let i = (j = 0);
 
     if (colors === 1) {
       while (i < length) {
         k = palette ? pixels[i / 4] * 4 : j;
-        const v = input[k++];
+        const v = input[k];
+        k += sampleBytes;
         data[i++] = v;
         data[i++] = v;
         data[i++] = v;
-        data[i++] = alpha ? input[k++] : 255;
+        data[i++] = alpha ? input[k] : 255;
+        if (alpha) k += sampleBytes;
         j = k;
       }
     } else {
       while (i < length) {
         k = palette ? pixels[i / 4] * 4 : j;
-        data[i++] = input[k++];
-        data[i++] = input[k++];
-        data[i++] = input[k++];
-        data[i++] = alpha ? input[k++] : 255;
+        data[i++] = input[k];
+        k += sampleBytes;
+        data[i++] = input[k];
+        k += sampleBytes;
+        data[i++] = input[k];
+        k += sampleBytes;
+        data[i++] = alpha ? input[k] : 255;
+        if (alpha) k += sampleBytes;
         j = k;
       }
     }
