@@ -5830,7 +5830,7 @@ Object {
   "pos": 425,
   "text": Object {},
   "transparency": Object {
-    "grayscale": 0,
+    "grayscale": 15,
   },
   "width": 32,
 }
@@ -5853,7 +5853,7 @@ Object {
   "pos": 1309,
   "text": Object {},
   "transparency": Object {
-    "grayscale": 255,
+    "grayscale": 65535,
   },
   "width": 32,
 }
@@ -6892,12 +6892,9 @@ Object {
   "text": Object {},
   "transparency": Object {
     "rgb": Array [
-      255,
-      255,
-      255,
-      255,
-      255,
-      255,
+      65535,
+      65535,
+      65535,
     ],
   },
   "width": 32,
@@ -8029,7 +8026,7 @@ Object {
   "pos": 425,
   "text": Object {},
   "transparency": Object {
-    "grayscale": 0,
+    "grayscale": 15,
   },
   "width": 32,
 }
@@ -8051,7 +8048,7 @@ Object {
   "pos": 1309,
   "text": Object {},
   "transparency": Object {
-    "grayscale": 255,
+    "grayscale": 65535,
   },
   "width": 32,
 }
@@ -9088,12 +9085,9 @@ Object {
   "text": Object {},
   "transparency": Object {
     "rgb": Array [
-      255,
-      255,
-      255,
-      255,
-      255,
-      255,
+      65535,
+      65535,
+      65535,
     ],
   },
   "width": 32,

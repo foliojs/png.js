@@ -173,11 +173,17 @@ window.PNG = (function () {
               case 0:
                 // Greyscale. Corresponding to entries in the PLTE chunk.
                 // Grey is two bytes, range 0 .. (2 ^ bit-depth) - 1
-                this.transparency.grayscale = this.read(chunkSize)[0];
+                var grey = this.read(chunkSize);
+                this.transparency.grayscale = (grey[0] << 8) | grey[1];
                 break;
               case 2:
-                // True color with proper alpha channel.
-                this.transparency.rgb = this.read(chunkSize);
+                // Truecolor. One 2-byte sample per channel, range 0 .. (2 ^ bit-depth) - 1
+                var rgb = this.read(chunkSize);
+                this.transparency.rgb = [
+                  (rgb[0] << 8) | rgb[1],
+                  (rgb[2] << 8) | rgb[3],
+                  (rgb[4] << 8) | rgb[5],
+                ];
                 break;
             }
             break;
