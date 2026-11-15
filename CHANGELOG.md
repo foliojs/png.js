@@ -5,6 +5,7 @@
 #### Fixed
 
 - Decode 16-bit grayscale, RGB, and alpha samples into 8-bit RGBA pixels in the packaged and standalone browser decoders (#13).
+- Read the `tRNS` color key of grayscale and truecolor images as full 2-byte samples. `transparency.grayscale` was the high byte only (0 for images of 8 bits or less) and `transparency.rgb` held the raw 6 bytes; it now holds one value per channel.
 
 ### [3.0.0] - 07-11-2026
 
