@@ -289,6 +289,8 @@ window.PNG = (function () {
       function pass(x0, y0, dx, dy, singlePass = false) {
         const w = Math.ceil((width - x0) / dx);
         const h = Math.ceil((height - y0) / dy);
+        // An empty pass has no filter-type bytes (PNG spec 9.1).
+        if (w <= 0 || h <= 0) return;
         const scanlineLength = pixelBytes * w;
         const buffer = singlePass ? pixels : new Uint8Array(scanlineLength * h);
         let row = 0;
