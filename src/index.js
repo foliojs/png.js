@@ -122,6 +122,8 @@ function decodePixelsData(meta, data) {
     function pass(x0, y0, dx, dy) {
       const w = Math.ceil((width - x0) / dx);
       const h = Math.ceil((height - y0) / dy);
+      // An empty pass has no filter-type bytes (PNG spec 9.1).
+      if (w <= 0 || h <= 0) return;
       const rowBytes = Math.ceil(pixelBytes * w);
       let cur = ringA.subarray(0, rowBytes);
       let spare = ringB.subarray(0, rowBytes);
